@@ -44,30 +44,59 @@
 #include <chrono>
 #include <ctime>
 
-template <typename DATATYPE, model_id MODEL_ID , 
+template <typename DATATYPE, model::id MODEL_ID , initial_condition::id IC_ID, 
 	boundary_condtion_type BC_X0, boundary_condtion_type BC_XN,
 	boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM> class gadit_solver
 {
 public:
 
-
-
-
-	dimensions dims;
-	parameters<DATATYPE,MODEL_ID> paras;
-	unified_work_space<DATATYPE> u_ws;
-	cuda_parameters::kernal_launch_parameters ker_launch_paras;
-	
 	gadit_solver(){};
 
-	void initialize(parameters<DATATYPE,MODEL_ID> paras ,  inital_condition_list::ic_id ic )
+	void initialize(parameters<DATATYPE,MODEL_ID,IC_ID> paras )
 	{
+		paras.spatial.compute_derived_parameters();
 		this->paras = paras;
-		setup_partition_and_initialize_memory( paras.spatial.x0 , paras.spatial.xn , paras.spatial.n ,
-												paras.spatial.y0 , paras.spatial.ym , paras.spatial.m );
-		set_and_load_initial_condition(ic);
+		//paras.spatial.set_partition(ds, x_0, x_n, y_0, y_m);
+
+		int padding = cuda_parameters::CELL_BORDER_PADDING;
+
+		dims.set_dimensions(paras.spatial.n, paras.spatial.m, padding);
+
+		int  initial_step_size = nonlinear_penta_solver::INITIAL_STEP_SIZE;
+		int  down_solve_sub_loop_size = nonlinear_penta_solver::DOWN_SOLVE_SUB_LOOP;
+		int  thread_size = cuda_parameters::PENTA_LU_LINE_THREAD_SIZE;
+
+		dims.set_penta_dimension(initial_step_size, down_solve_sub_loop_size, thread_size);
+
+		int reduction_block_size = cuda_parameters::SIMPLE_SQUARE_BLOCK;
+
+		dims.set_reduction_dimension(reduction_block_size);
+
+		int Jy_F_y_subloop_size = cuda_parameters::SOLVE_JY_SUBLOOP_SIZE;
+		int Jy_F_y_thread_size = cuda_parameters::SOLVE_JY_THREAD_SIZE;
+
+		dims.set_Jx_F_dimension(Jy_F_y_thread_size, Jy_F_y_subloop_size);
+
+		int simple_block_size = cuda_parameters::SIMPLE_SQUARE_BLOCK;
+
+		dims.set_simple_block_dimension(simple_block_size);
+
+		u_ws.initalize_memory(dims);
+
+		ker_launch_paras.initalize(dims);
+
+		for (int i = 0; i < dims.n; i++)
+		{
+			u_ws.x->data_host[i] = paras.spatial.x0 + (i + 0.5)*paras.spatial.ds;
+		}
+		for (int j = 0; j < dims.m; j++)
+		{
+			u_ws.y->data_host[j] = paras.spatial.y0 + (j + 0.5)*paras.spatial.ds;
+		}
+
+
 	}
-	
+
 
 	void solve_model_evolution()
 	{
@@ -82,82 +111,45 @@ public:
 
 		b_mang.initialize( paras.backup);
 
-
 		bool isFirstRun = !fileExists( file_directories::backupFileInfo );
 
 		// loading data if temporary data exisits.
 		if ( isFirstRun )
 		{
 			file_directories::clean();
+			file_directories::make_directories(paras.io.root_directory);
+
+			t_mang.initialize( paras.temporal );
+			initial_condition_list::compute<DATATYPE,IC_ID>( u_ws.x , u_ws.y , u_ws.h , dims , paras.spatial , paras.initial );
 
 			outputString =  get_time_stamp() + "Started simulations from initial condition.";
-			write_to_new_file( file_directories::statusData , outputString );
-			
-			t_mang.initialize( paras.temporal );
+			write_to_new_file( file_directories::statusData , outputString, paras.io.is_console_output);
 		}
 		else
 		{		
-			load_object<timestep_manager<DATATYPE>>(file_directories::backupFileInfo , t_mang );
+
+			load_object<timestep_manager<DATATYPE>>( paras.io.root_directory + file_directories::backupFileInfo , t_mang );
+			load_binary ( file_directories::backupSolution , u_ws.h->data_host , dims.n_pad , dims.m_pad );
 			
 			char buff[100];				
 			sprintf(buff,"Continuing simulations from backup data at t = %11.10E." , t_mang.get_current_time() );
 			outputString =  get_time_stamp() + buff;
-			write_to_old_file( file_directories::statusData , outputString );
+			write_to_old_file( paras.io.root_directory + file_directories::statusData , outputString , paras.io.is_console_output );
 		}
+
+		memory_manager::copyHostToDevice(u_ws.h);
 
 		// loops till t_end reached or break statement
 		// is executed by a failure state.
-		while( t_mang.is_not_completed() )
+		while( t_mang.is_not_completed() ) 
 		{	
 			size_t newton_count;
-			DATATYPE dt;
-			DATATYPE t;
-			size_t	 timestep;
 			
-			newton_iterative_method::solve_time_step<DATATYPE, MODEL_ID, BC_X0, BC_XN, BC_Y0, BC_YM>(u_ws, dims, paras ,  ker_launch_paras , dt , newton_count , n_status );
+			newton_iterative_method::solve_time_step<DATATYPE, MODEL_ID,IC_ID, BC_X0, BC_XN, BC_Y0, BC_YM>(u_ws, dims, paras ,  ker_launch_paras , t_mang.get_timestep() , newton_count , n_status );
 
-			//char buff2[100];			
-			//sprintf(buff2,"dt = %11.10E , t = %11.10E" , t_mang.get_timestep() , t_mang.get_current_time() );	
-			//outputString =  get_time_stamp() + buff2;
-			//write_to_old_file( file_directories::statusData , outputString );
+			if (paras.io.is_full_text_output) 
+				output_all_timestep_changes<DATATYPE>(t_mang, n_status, paras.io.is_console_output);
 
-			////bool is_timestep_successful = (n_status == newton_status::SUCCESS);
-			//bool is_not_handled_state = false;
-
-
-			//
-			//if ( n_status != newton_status::SUCCESS )
-			//{
-			//	switch( n_status )
-			//	{
-			//	case newton_status::INCREASE_DT:
-			//		// Value should not be returned by newton solver. Dummy case to remove from default case.
-			//		// See 'newton_status' enum for further details.
-			//		break;
-			//	case newton_status::CONVERGENCE_FAILURE_LARGE:
-			//			char buff[100];			
-			//		
-			//			sprintf(buff,"Newton Failed, dt = %11.10E , t = %11.10E." , t_mang.get_timestep() , t_mang.get_current_time() );	
-			//			outputString =  get_time_stamp() + buff;
-			//			write_to_old_file( file_directories::statusData , outputString );
-			//		break;
-			//
-			//
-			//	default:
-			//		is_not_handled_state = true;
-			//		break;
-			//	}
-			//	
-			//}
-			//
-			//if ( is_not_handled_state )
-			//{
-			//	outputString =  get_time_stamp() + "Simulation Failed! Invalid newton_status value returned.";
-			//	write_to_old_file( file_directories::statusData , outputString );
-			//	break;
-			//}
-			
-			
 			t_status = t_mang.update_dt( n_status );
 
 			log_file.add_entry( t_mang.get_iteration_index() , t_mang.get_timestep() , n_status , newton_count );
@@ -179,13 +171,11 @@ public:
 					sprintf(buff,"Unhandled timestep_manager_status." );	
 					break;
 
-
 				}
 				outputString =  get_time_stamp() + buff;
-				write_to_old_file( file_directories::statusData , outputString );
+				write_to_old_file( paras.io.root_directory + file_directories::statusData , outputString , paras.io.is_console_output);
 				break;
 			}
-
 
 			if ( t_mang.is_sucessful_output_step() )
 			{
@@ -193,12 +183,14 @@ public:
 				
 				sprintf(buff,"Saving solution at t = %11.10E to file." , t_mang.get_current_time() );
 				outputString =  get_time_stamp() + buff;
-				write_to_old_file( file_directories::statusData , outputString );
+				write_to_old_file( paras.io.root_directory +  file_directories::statusData , outputString, paras.io.is_console_output);
 
 				sprintf(buff, "/solution_%07d.dat", t_mang.get_next_output_index() );
-				outputString = file_directories::outputDir + buff;
+
+				std::string outputFileDir;
+				outputFileDir = paras.io.root_directory + file_directories::outputDir + buff;
 				memory_manager::copyDeviceToHost<DATATYPE>( u_ws.h );
-				output_binary( outputString , u_ws.h->data_host , dims.n_pad , dims.m_pad );
+				output_binary( outputFileDir , u_ws.h->data_host , dims.n_pad , dims.m_pad );
 			}
 
 			if ( b_mang.is_backup_time() )
@@ -207,12 +199,12 @@ public:
 				
 				sprintf(buff,"Backing up solution at t = %11.10E to file." , t_mang.get_current_time() );
 				outputString =  get_time_stamp() + buff;
-				write_to_old_file( file_directories::statusData , outputString );
+				write_to_old_file(  paras.io.root_directory + file_directories::statusData , outputString, paras.io.is_console_output);
 
 				memory_manager::copyDeviceToHost<DATATYPE>( u_ws.h );
-				output_binary( file_directories::backupSolution , u_ws.h->data_host , dims.n_pad , dims.m_pad );
+				output_binary(  paras.io.root_directory + file_directories::backupSolution , u_ws.h->data_host , dims.n_pad , dims.m_pad );
 
-				save_object<timestep_manager<DATATYPE>>(file_directories::backupFileInfo , t_mang );
+				save_object<timestep_manager<DATATYPE>>( paras.io.root_directory + file_directories::backupFileInfo , t_mang );
 
 				log_file.commit_data_to_files();
 			}
@@ -233,53 +225,38 @@ private:
 	{
 		DATATYPE ds = (x_n - x_0) / (1.0*n);
 
-		paras.spatial.set_partition(ds, x_0, x_n, y_0, y_m);
 
-		int padding = cuda_parameters::CELL_BORDER_PADDING;
-
-		dims.set_dimensions(n, m, padding);
-
-		int  initial_step_size = nonlinear_penta_solver::INITIAL_STEP_SIZE;
-		int  down_solve_sub_loop_size = nonlinear_penta_solver::DOWN_SOLVE_SUB_LOOP;
-		int  thread_size = cuda_parameters::PENTA_LU_LINE_THREAD_SIZE;
-
-		dims.set_penta_dimension(initial_step_size, down_solve_sub_loop_size, thread_size);
-
-		int reduction_block_size = cuda_parameters::SIMPLE_SQUARE_BLOCK;
-
-		dims.set_reduction_dimension(reduction_block_size);
-
-		int Jy_F_y_subloop_size = cuda_parameters::SOLVE_JY_SUBLOOP_SIZE;
-		int Jy_F_y_thread_size = cuda_parameters::SOLVE_JY_THREAD_SIZE;
-
-		dims.set_Jx_F_dimension(Jy_F_y_thread_size,Jy_F_y_subloop_size);
-
-		int simple_block_size = cuda_parameters::SIMPLE_SQUARE_BLOCK;
-
-		dims.set_simple_block_dimension(simple_block_size);
-
-		u_ws.initalize_memory(dims);
-
-		ker_launch_paras.initalize(dims);
-
-		for (int i = 0; i < dims.n; i++)
-		{
-			u_ws.x->data_host[i] = x_0 + (i + 0.5)*ds;
-		}
-		for (int j = 0; j < dims.m; j++)
-		{
-			u_ws.y->data_host[j] =y_0 + (j + 0.5)*ds;
-		}
 
 	};
 
-	void set_and_load_initial_condition(inital_condition_list::ic_id id )
+	template <typename DATATYPE> void output_all_timestep_changes(timestep_manager<DATATYPE> t_mang, newton_status::status n_status, bool  is_console_output)
 	{
-		inital_condition_list::compute_ic( u_ws.x , u_ws.y , u_ws.h , dims , paras.spatial , id );
-		memory_manager::copyHostToDevice(u_ws.h);
 
-	};
+		string outputString;
+		char buff[100];
+		sprintf(buff, "dt = %11.10E , t = %11.10E", t_mang.get_timestep(), t_mang.get_current_time());
+		outputString = get_time_stamp() + buff;
+		write_to_old_file(file_directories::statusData, outputString, is_console_output);
 
+		if (n_status != newton_status::SUCCESS)
+		{
+			switch (n_status)
+			{
+			case newton_status::INCREASE_DT:
+				// Value should not be returned by newton solver. Dummy case to remove from default case.
+				// See 'newton_status' enum for further details.
+				break;
+			case newton_status::CONVERGENCE_FAILURE_LARGE:
+				sprintf(buff, "Newton Failed, dt = %11.10E , t = %11.10E.", t_mang.get_timestep(), t_mang.get_current_time());
+				outputString = get_time_stamp() + buff;
+				write_to_old_file(paras.io.root_directory + file_directories::statusData, outputString , paras.io.is_console_output );
+				break;
+
+			}
+
+		}
+
+	}
 	string get_time_stamp()
 	{
 		string time_stamp;
@@ -292,7 +269,11 @@ private:
 		return time_stamp;
 
 	}
-
+	
+	dimensions dims;
+	parameters<DATATYPE,MODEL_ID,IC_ID> paras;
+	unified_work_space<DATATYPE> u_ws;
+	cuda_parameters::kernal_launch_parameters ker_launch_paras;
 
 };
 

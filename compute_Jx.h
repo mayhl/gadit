@@ -112,8 +112,6 @@ template <typename DATATYPE, int BLOCK_SIZE, bool FIRST_NEWTON_ITERATION,
 			int x = blockIdx.x * BLOCK_SIZE + threadIdx.x;
 			int y = blockIdx.y * BLOCK_SIZE + threadIdx.y;
 
-			DATATYPE *d_h;
-
 			if (x < dims.n && y < dims.m)
 			{
 				

@@ -47,7 +47,7 @@ public:
 	{
 		currentTime  =  std::chrono::system_clock::now();
 
-		long long timeDiff =  std::chrono::duration_cast< std::chrono::seconds >(currentTime - timeLastupdate).count();
+		long long timeDiff =  std::chrono::duration_cast< std::chrono::minutes >(currentTime - timeLastupdate).count();
 
 		if ( timeDiff > parameters.updateTime )
 		{

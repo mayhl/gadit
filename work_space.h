@@ -1,0 +1,350 @@
+// ----------------------------------------------------------------------------------
+// Copyright 2016-2017 Michael-Angelo Yick-Hang Lam
+//
+// The development of this software was supported by the National Science Foundation
+// (NSF) Grant Number DMS-1211713.
+//
+// This file is part of GADIT.
+//
+// GADIT is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License version 3 as published by
+// the Free Software Foundation.
+//
+// GADIT is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with GADIT.  If not, see <http://www.gnu.org/licenses/>.
+// ----------------------------------------------------------------------------------
+
+#ifndef WORK_SPACE
+#define WORK_SPACE
+
+#include "cuda_runtime.h"
+#include "memory_manager.h"
+#include "cuda_parameters.h"
+#include "dimensions.h"
+
+template <typename DATATYPE>
+struct __align__(16) PentaLMatrix
+{
+	DATATYPE _a;
+	DATATYPE _b;
+};
+
+template <typename DATATYPE>
+struct __align__(16) PentaUMatrix
+{
+	DATATYPE _c;
+	DATATYPE _d;
+	DATATYPE _e;
+};
+
+
+template <typename DATATYPE>
+struct PentaLUMatrix
+{
+	PentaLMatrix<DATATYPE> *_L;
+	PentaUMatrix<DATATYPE> *_U;
+	DATATYPE *_f;
+};
+
+
+
+
+template <typename DATATYPE>struct penta_diag_row
+{
+
+	DATATYPE a;
+	DATATYPE b;
+	DATATYPE c;
+	DATATYPE d;
+	DATATYPE e;
+	DATATYPE f;
+
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//																									//
+// Description: 
+//		Structure to hold global memory device pointers, simplifying function calls.
+//
+//		Works in conjunction 'memory_manager.h', which facilitate memory allocation and
+//		data transfer between host (CPU) and device (GPU). 
+//
+//		A smaller version of "unified_work_space" (contained here) which,
+//			1) reduces the size of the object passed to kernal;
+//			2) reduces the degree of pointer seperation between passed object
+//			   and reference location created by 'memory_manager.h.
+// WARNING: 
+//		Must be passed by values. Passing by pointer will result in invalid pointers.
+//																									//
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename DATATYPE> struct reduced_device_workspace
+{
+
+	// Varibles used to compute the linear system to solve at each newton iteration;
+
+	DATATYPE *h;
+	DATATYPE *h_guess;
+
+	DATATYPE *f1;
+	DATATYPE *df1;
+
+	DATATYPE *f2;
+	DATATYPE *df2;
+
+	DATATYPE *F_fixed;
+	DATATYPE *F;
+
+	DATATYPE *v;
+	DATATYPE *w_transpose;
+
+	DATATYPE *Jx_a;
+	DATATYPE *Jx_b;
+	DATATYPE *Jx_c;
+	DATATYPE *Jx_d;
+	DATATYPE *Jx_e;
+
+	DATATYPE *Jy_a;
+	DATATYPE *Jy_b;
+	DATATYPE *Jy_c;
+	DATATYPE *Jy_d;
+	DATATYPE *Jy_e;
+
+	// Varibles used solve penta diagonal matrix
+
+
+	DATATYPE *LU_a;
+	DATATYPE *LU_b;
+	DATATYPE *LU_c;
+	DATATYPE *LU_d;
+	DATATYPE *LU_e;
+
+	DATATYPE *A_a;
+	DATATYPE *A_b;
+	DATATYPE *A_c;
+	DATATYPE *A_d;
+	DATATYPE *A_e;
+
+
+	char *solution_flags;
+	//bool *newton_converge_small;
+
+
+	PentaLUMatrix<DATATYPE> pLU;
+	PentaLMatrix<DATATYPE> *pL;
+	PentaUMatrix<DATATYPE> *pU;
+	DATATYPE *pf;
+
+
+};
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//																									//
+// Description: 
+//		Class that handles 
+//			1) total memory used on host (CPU),
+//			2) and total global memory on device (GPU).
+//
+//		Serves three (3) purposes:
+//			1) Declare varibles and storage location(s), handled by 'memory_unit';
+//			2) Allocate and deallocated memory, simplifed using 'memory_manager.h';
+//			3) With 'reduced_device_workspace', pointer reference value may be copied 
+//			   (from 'memory_unit') to:
+//					a) reduce total memory usage,
+//					b) remove reference value passing at each newton iteration and time step,
+//					c) and provide one object to pass, 'reduced_device_workspace' while 
+//					   maintaining a robust set of parameters.										//
+//																									//
+// WARNING:																							//
+//		Care must be taken when linking 'memory_manager.h' and 'reduced_device_workspace'			//
+//																									//
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+using namespace memory_manager;
+
+template<typename DATATYPE> class unified_work_space
+{
+//
+public:
+	reduced_device_workspace<DATATYPE> reduced_dev_ws;
+
+
+	memory_unit<DATATYPE> *h;
+	memory_unit<DATATYPE> *x;
+	memory_unit<DATATYPE> *y;
+
+	memory_unit<DATATYPE>  *h_guess;
+
+	memory_unit<DATATYPE>  *f1;
+	memory_unit<DATATYPE>  *df1;
+
+	memory_unit<DATATYPE>  *f2;
+	memory_unit<DATATYPE>  *df2;
+
+	memory_unit<DATATYPE>  *F_fixed;
+	memory_unit<DATATYPE>  *F;
+
+	memory_unit<DATATYPE>  *J_a;
+	memory_unit<DATATYPE>  *J_b;
+	memory_unit<DATATYPE>  *J_c;
+	memory_unit<DATATYPE>  *J_d;
+	memory_unit<DATATYPE>  *J_e;
+
+
+	memory_unit<DATATYPE>  *w_transpose;
+
+	memory_unit<char> *solution_flags;
+
+
+
+
+	memory_unit<DATATYPE> *pf;
+	memory_unit<PentaLMatrix<DATATYPE>> *pL;
+	memory_unit<PentaUMatrix<DATATYPE>> *pU;
+
+
+
+
+
+
+	unified_work_space(){};
+	
+	void initalize_memory(dimensions dims)
+	{ 
+
+
+		h = new memory_unit<DATATYPE>(memory_scope::PINNED, dims.n_pad, dims.m_pad);
+
+		x = new memory_unit<DATATYPE>(memory_scope::HOST_ONLY, dims.n);
+		y = new memory_unit<DATATYPE>(memory_scope::HOST_ONLY, dims.m);
+
+		h_guess = new memory_unit<DATATYPE>(memory_scope::NON_PINNED, dims.n_pad, dims.m_pad);
+
+
+		f1 = new memory_unit<DATATYPE>(memory_scope::NON_PINNED, dims.n_pad, dims.m_pad);
+		df1 = new memory_unit<DATATYPE>(f1);
+		f2 = new memory_unit<DATATYPE>(f1);
+		df2 = new memory_unit<DATATYPE>(f1);
+
+		F = new memory_unit<DATATYPE>(memory_scope::NON_PINNED, dims.n, dims.m);
+		F_fixed = new memory_unit<DATATYPE>(memory_scope::NON_PINNED, dims.n, dims.m);
+
+		J_a = new memory_unit<DATATYPE>(F);
+		J_b = new memory_unit<DATATYPE>(F);
+		J_d = new memory_unit<DATATYPE>(F);
+		J_c = new memory_unit<DATATYPE>(F);
+		J_e = new memory_unit<DATATYPE>(F);
+
+		w_transpose = new memory_unit<DATATYPE>(F);
+
+		solution_flags = new memory_unit<char>(memory_scope::PINNED, dims.n_reduced , dims.m_reduced);
+
+
+		//pf = new memory_unit<DATATYPE>(F);
+
+		//pL = new memory_unit<PentaLMatrix<DATATYPE>>(memory_scope::NON_PINNED, dims.n, dims.m);
+		//pU = new memory_unit<PentaUMatrix<DATATYPE>>(memory_scope::NON_PINNED, dims.n, dims.m);
+
+
+		initiateVaribles(h, h_guess);
+		initiateVaribles(x, y);
+		initiateVaribles(f1, df1, f2, df2);
+		initiateVaribles(J_a, J_b, J_c, J_d, J_e, F, F_fixed);
+		initiateVaribles(w_transpose);
+		initiateVaribles(solution_flags);
+	//	initiateVaribles(pf, pL, pU);
+
+
+
+
+		// unique allocations
+		reduced_dev_ws.h = h->data_device;
+		reduced_dev_ws.h_guess = h_guess->data_device;
+
+		reduced_dev_ws.f1 = f1->data_device;
+		reduced_dev_ws.df1 = df1->data_device;
+
+		reduced_dev_ws.f2 = f2->data_device;
+		reduced_dev_ws.df2 = df2->data_device;
+
+		reduced_dev_ws.F_fixed = F_fixed->data_device;
+
+		reduced_dev_ws.w_transpose = w_transpose->data_device;
+
+		reduced_dev_ws.F = F->data_device;
+		// save memory since new F requires v be added to h_guess
+		reduced_dev_ws.v = F->data_device;
+
+
+		// matricies share same memory space
+
+
+		reduced_dev_ws.Jx_a = J_a->data_device;
+		reduced_dev_ws.Jx_b = J_b->data_device;
+		reduced_dev_ws.Jx_c = J_c->data_device;
+		reduced_dev_ws.Jx_d = J_d->data_device;
+		reduced_dev_ws.Jx_e = J_e->data_device;
+
+		reduced_dev_ws.Jy_a = J_a->data_device;
+		reduced_dev_ws.Jy_b = J_b->data_device;
+		reduced_dev_ws.Jy_c = J_c->data_device;
+		reduced_dev_ws.Jy_d = J_d->data_device;
+		reduced_dev_ws.Jy_e = J_e->data_device;
+
+		reduced_dev_ws.A_a = J_a->data_device;
+		reduced_dev_ws.A_b = J_b->data_device;
+		reduced_dev_ws.A_c = J_c->data_device;
+		reduced_dev_ws.A_d = J_d->data_device;
+		reduced_dev_ws.A_e = J_e->data_device;
+
+		reduced_dev_ws.LU_a = J_a->data_device;
+		reduced_dev_ws.LU_b = J_b->data_device;
+		reduced_dev_ws.LU_c = J_c->data_device;
+		reduced_dev_ws.LU_d = J_d->data_device;
+		reduced_dev_ws.LU_e = J_e->data_device;
+
+
+
+		reduced_dev_ws.solution_flags = solution_flags->data_device;
+
+
+		//reduced_dev_ws.pLU._L = pL->data_device;
+		//reduced_dev_ws.pLU._U = pU->data_device;
+		//reduced_dev_ws.pLU._f = pf->data_device;
+
+		//reduced_dev_ws.pL = pL->data_device;
+		//reduced_dev_ws.pU = pU->data_device;
+		//reduced_dev_ws.pf = pf->data_device;
+
+
+
+	}
+
+	~unified_work_space()
+	{/*
+		freeAll(h, h_guess);
+		freeAll(x, y);
+		freeAll(f1, df1, f2, df2);
+		freeAll(J_a, J_b, J_c, J_d, J_e, F, F_fixed);*/
+	}
+
+	void clean_workspace()
+	{
+
+		freeAll(h, h_guess);
+		freeAll(x, y);
+		freeAll(f1, df1, f2, df2);
+		freeAll(J_a, J_b, J_c, J_d, J_e, F, F_fixed);
+		freeAll(w_transpose);
+		freeAll(solution_flags);
+		//freeAll(pf, pL, pU);
+	}
+};
+
+#endif

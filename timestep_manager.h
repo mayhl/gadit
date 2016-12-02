@@ -44,8 +44,8 @@ public:
 
 		dt						= parameters.dt_init;
 		dt_temp					= parameters.dt_init;
-		t_out					= parameters.dt_out;
 		t						= parameters.t_start;
+		t_out					= t + parameters.dt_out;
 		t_next					= t + dt;
 
 		isOutputStep			= false;
@@ -96,7 +96,7 @@ public:
 		}
 		else
 		{
-			
+			stable_time_steps = 0;
 			is_at_max_time_step = false;
 			// Unexpected state, dt was lowered to match output time but failed.
 			if ( isOutputStep ) return timestep_manager_status::DT_CHANGE_OUTPUT;
@@ -166,7 +166,7 @@ private:
 			// Adjusting dt temporarily if close to t_out
 			t_next = t + dt;
 
-			if ( t_next > t_out )
+			if ( t_next >= t_out )
 			{
 				dt_temp = dt;
 

@@ -20,57 +20,111 @@
 // ----------------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------------
-// Name:			initial_condition_list.h
+// Name:			initial_condition.h
 // Version: 		1.0
 // Purpose:		Allows easy switching between different types of initial
 //						conditions
 // ----------------------------------------------------------------------------------
 
-#ifndef INITIAL_CONDITION
-#define INITIAL_CONDITION
+#ifndef INITIAL_CONDITION_LIST
+#define INITIAL_CONDITION_LIST
 
 #include "work_space.h"
 #include "memory_manager.h"
 #include "parameters.h"
+#include "solver_template.h"
 #include "output.h"
 
-namespace inital_condition_list{
+#define PI 3.14159265359
 
-	enum ic_id{
-		LOAD_FROM_FILE,
-		TEST,
+
+namespace ic_linear_waves
+{
+	initial_condition::id const ID = initial_condition::LINEAR_WAVES;
+	template <typename DATATYPE > struct initial_parameters<DATATYPE, ID>
+	{
+		int nx;
+		int ny;
+		DATATYPE epy;
+		DATATYPE epx;
+		DATATYPE h0;
 	};
 
-	template<typename DATATYPE> void compute_ic(DATATYPE *x, DATATYPE *y, DATATYPE *h, dimensions dims , spatial_parameters<DATATYPE> paras, ic_id  id)
+	template<typename DATATYPE, initial_condition::id IC_ID> DATATYPE 
+		compute(DATATYPE &x, DATATYPE &y,
+				spatial_parameters<DATATYPE> parasSpatial, initial_parameters<DATATYPE,IC_ID> parasInitial){ return 0;}
+
+	template<typename DATATYPE, initial_condition::id IC_ID = ID> DATATYPE 
+		compute(DATATYPE &x, DATATYPE &y, 
+				spatial_parameters<DATATYPE> parasSpatial, initial_parameters<DATATYPE,ID> parasInitial)
+	{
+		return parasInitial.h0*( 1 + parasInitial.epx*( cos (parasInitial.nx*PI*x/(parasSpatial.xn-parasSpatial.x0) ) )
+			                       + parasInitial.epy*( cos (parasInitial.ny*PI*y/(parasSpatial.ym-parasSpatial.y0) ) ) );	
+	}
+
+}
+
+namespace initial_condition_list{
+
+	enum load_status
+	{
+		SUCCESS,
+		CAN_NOT_OPEN_FILE,
+		NON_IMPLEMENTED_ID,
+	};
+
+	template<typename DATATYPE, initial_condition::id IC_ID> load_status compute(DATATYPE *x, DATATYPE *y, DATATYPE *h, dimensions dims , 
+		spatial_parameters<DATATYPE> parasSpatial, initial_parameters<DATATYPE,IC_ID> parasInitial)
 	{	
-		#define PI 3.14159265359
 
-		switch (id)
+
+		if ( IC_ID == initial_condition::LOAD_FROM_FILE )
 		{
-		case ic_id::LOAD_FROM_FILE:
-			load_binary ( file_directories::icInputFile , h , dims.n_pad , dims.m_pad );
-			break;
+			bool is_file_loaded;
+			is_file_loaded = load_binary ( file_directories::icInputFile , h , dims.n_pad , dims.m_pad );
 
-		case ic_id::TEST:
+			if ( is_file_loaded ) 
+				return load_status::SUCCESS;
+			else
+				return load_status::CAN_NOT_OPEN_FILE;
+		}
+		else
+		{
+
+			bool is_invalid_id = false;
 			for (int j = 0; j < dims.m ; j++)
 			{
 				for (int i = 0; i < dims.n; i++)
 				{
 					int k = (j +  dims.padding)*dims.n_pad +  dims.padding + i;
-					h[k] = 0.2*( 1 - 0.1*( cos ( 80*PI*x[i]/(paras.xn-paras.x0) ) + ( cos ( 80*PI*y[j]/(paras.ym-paras.y0) ) ) ) );	
-				}
-			}
-			break;
 
-		default:
-			break;
+					// Add new initial conditions here.
+					switch (IC_ID)
+					{
+					case initial_condition::LINEAR_WAVES:
+						h[k] = ic_linear_waves::compute<DATATYPE, initial_condition::LINEAR_WAVES>( x[i] , y[j] , parasSpatial , parasInitial);
+						break;
+					}
+				}
+
+				if ( is_invalid_id ) break;
+			}
+
+			if ( is_invalid_id )  
+				return load_status::NON_IMPLEMENTED_ID;
+			else
+				return load_status::SUCCESS;
+
 		}
+
 	};
 
 	// wrapper for memory_units to pass host pointers  
-	template<typename DATATYPE> void compute_ic(memory_unit<DATATYPE> *x, memory_unit<DATATYPE> *y, memory_unit<DATATYPE> *h, dimensions dims, spatial_parameters<DATATYPE> paras, ic_id id)
+	template<typename DATATYPE, initial_condition::id IC_ID> load_status compute
+		(memory_unit<DATATYPE> *x, memory_unit<DATATYPE> *y, memory_unit<DATATYPE> *h, dimensions dims, 
+		spatial_parameters<DATATYPE> parasSpatial ,   initial_parameters<DATATYPE,IC_ID> parasInitial)
 	{
-		compute_ic(x->data_host, y->data_host, h->data_host, dims, paras, id);
+		return compute<DATATYPE,IC_ID>(x->data_host, y->data_host, h->data_host, dims, parasSpatial, parasInitial);
 	};
 }
 

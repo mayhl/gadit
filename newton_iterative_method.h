@@ -37,6 +37,7 @@
 #include "compute_Jy_F.h"
 #include "compute_Jx.h"
 
+#include "model_list.h"
 // List of Models 
 #include "model_default.h"
 #include "model_nlc.h"
@@ -45,19 +46,22 @@
 
 namespace  newton_iterative_method
 {
-	template <typename DATATYPE,model_id MODEL_ID> __device__ __forceinline__
+	template <typename DATATYPE, model::id MODEL_ID> __device__ __forceinline__
 		void compute_nonlinear_functions(reduced_device_workspace<DATATYPE> d_ws, DATATYPE *d_h , spatial_parameters<DATATYPE> spatialParas, model_parameters<DATATYPE, MODEL_ID> modelParas, DATATYPE dt, int index )
 	{
 
-		switch (MODEL_ID)
-		{
-		case model_id::DEFAULT:
-			model_default::nonlinear_functions<DATATYPE>(d_ws, d_h , modelParas, index);
-		case model_id::NLC:
-			model_nlc::nonlinear_functions<DATATYPE>(d_ws, d_h , modelParas, index);
-			break;
+		//switch (MODEL_ID)
+		//{
+		//case model_id::DEFAULT:
+		//	model_default::nonlinear_functions<DATATYPE>(d_ws, d_h , modelParas, index);
+		//	break;
+		//case model_id::NLC:
+		//	model_nlc::nonlinear_functions<DATATYPE>(d_ws, d_h , modelParas, index);
+		//	break;
 
-		}
+		//}
+
+		model_list::select_functions<DATATYPE,MODEL_ID>( d_ws , d_h , modelParas , index );
 
 		// Note: Recall to multiple function by dt and scaled 1/dx^4 and 1/dx^2 
 		d_ws.f1[index] *= dt*spatialParas.scaled_inv_ds4;
@@ -170,7 +174,7 @@ namespace  newton_iterative_method
 
 	
 
-	template <typename DATATYPE, model_id MODEL_ID,
+	template <typename DATATYPE, model::id MODEL_ID,
 		boundary_condtion_type BC_X0, boundary_condtion_type BC_XN,
 		boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM,
 		bool FIRST_NEWTON_ITERATION > __global__
@@ -215,11 +219,11 @@ namespace  newton_iterative_method
 
 
 
-	template<typename DATATYPE, model_id MODEL_ID,
+	template<typename DATATYPE, model::id MODEL_ID, initial_condition::id IC_ID,
 		boundary_condtion_type BC_X0, boundary_condtion_type BC_XN,
 		boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM, newton_stage::stage NEWTON_STAGE > void
 		apply_single_iteration
-		(DATATYPE &dt, unified_work_space<DATATYPE> u_ws, dimensions dims, parameters<DATATYPE,MODEL_ID> paras, cuda_parameters::kernal_launch_parameters ker_launch_paras , newton_status::status &n_status){
+		(DATATYPE &dt, unified_work_space<DATATYPE> u_ws, dimensions dims, parameters<DATATYPE,MODEL_ID,IC_ID> paras, cuda_parameters::kernal_launch_parameters ker_launch_paras , newton_status::status &n_status){
 
 			dim3 block_size = ker_launch_paras.simple_sqaure_block.block;
 			dim3 thread_size = ker_launch_paras.simple_sqaure_block.thread;
@@ -275,28 +279,28 @@ namespace  newton_iterative_method
 
 		}
 	
-	template<typename DATATYPE, model_id MODEL_ID, 
+	template<typename DATATYPE, model::id MODEL_ID, initial_condition::id IC_ID, 
 		boundary_condtion_type BC_X0, boundary_condtion_type BC_XN,
 		boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM> void
 			solve_time_step
 			(unified_work_space<DATATYPE> u_ws, dimensions dims,
-			 parameters<DATATYPE,MODEL_ID> paras, cuda_parameters::kernal_launch_parameters ker_launch_paras , DATATYPE dt , size_t &newton_count , newton_status::status &n_status )
+			 parameters<DATATYPE,MODEL_ID,IC_ID> paras, cuda_parameters::kernal_launch_parameters ker_launch_paras , DATATYPE dt , size_t &newton_count , newton_status::status &n_status )
 	{
 
 		
 		// applying first iteration
-		apply_single_iteration<DATATYPE, MODEL_ID, BC_X0, BC_XN, BC_Y0, BC_YM, newton_stage::INITIAL >(dt, u_ws, dims, paras, ker_launch_paras, n_status);
+		apply_single_iteration<DATATYPE, MODEL_ID, IC_ID, BC_X0, BC_XN, BC_Y0, BC_YM, newton_stage::INITIAL >(dt, u_ws, dims, paras, ker_launch_paras, n_status);
 
 		// applying min_iterations without any convergence checks 
 		for (newton_count = 2; newton_count < paras.newton.min_iterations ; newton_count++)
 		
-			apply_single_iteration<DATATYPE, MODEL_ID, BC_X0, BC_XN, BC_Y0, BC_YM, newton_stage::PRELOOP>(dt, u_ws, dims, paras, ker_launch_paras , n_status);
+			apply_single_iteration<DATATYPE, MODEL_ID, IC_ID, BC_X0, BC_XN, BC_Y0, BC_YM, newton_stage::PRELOOP>(dt, u_ws, dims, paras, ker_launch_paras , n_status);
 
 		
 		// applying remaining iterations with convergence checks 
 		for (newton_count = paras.newton.min_iterations + 1 ; newton_count < paras.newton.max_iterations ; newton_count++)
 		{
-			apply_single_iteration<DATATYPE, MODEL_ID, BC_X0, BC_XN, BC_Y0, BC_YM, newton_stage::LOOP>(dt, u_ws, dims, paras, ker_launch_paras , n_status);
+			apply_single_iteration<DATATYPE, MODEL_ID, IC_ID, BC_X0, BC_XN, BC_Y0, BC_YM, newton_stage::LOOP>(dt, u_ws, dims, paras, ker_launch_paras , n_status);
 			if (n_status == newton_status::SUCCESS) break;
 		}
 
