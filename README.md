@@ -7,7 +7,7 @@ GADIT is a GPU implementation of the numerical scheme for the generalize thin fi
 ## Operating System Support
 GADIT was developed and tested on the Windows platform.
 
-Durning early development, GADIT has successfully complied on Ubuntu 14.05; however, there were file I/0 errors. Brief testing showed that by removing the file I/0,  GADIT  ran without issue and produced the correct results (console output).  Since then, the file I/0 has been redesigned; however, due to technical failure, my Ubuntu 14.05 boot failed, and I have been unable to get NVIDIA driver to work again; therefore, I have been unable to test the new file I/0. The code should work on Linux base operating systems, and if there are any runtime errors, this is most likely due to the file I/0; This can be corrected by modifying output.h. In addition, the original makefile was lost.
+Durning early development, GADIT has successfully complied on Ubuntu 14.05; however, there were file I/0 errors. Brief testing showed that by removing the file I/0,  GADIT  ran without issue and produced the correct results (console output).  Since then, the file I/0 has been redesigned; however, due to a technical failure, my Ubuntu 14.05 boot failed, and I have been unable to get NVIDIA driver to work again; therefore, I have been unable to test the new file I/0. The code should work on Linux base operating systems, and if there are any runtime errors, this is most likely due to the file I/0; This can be corrected by modifying output.h. In addition, the original makefile was lost.
 
 GADIT has not been tested on Macintosh based operating systems.
 
