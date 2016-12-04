@@ -17,7 +17,7 @@ There is a small bug in the adaptive time stepping method, timestep_manager.h.  
 calculate the solution at the output time, 't_out,' if 'dt' advances the solution past 't_out.'  GADIT will also increase 'dt' if a certain amount of
 time steps are computed within the convergence conditions of the Newton iterations method, 'stable_time_steps.'  There is, however, a bug where both conditions are met, which results in the time step being increased instead; this is an unexpected state; therefore GADIT will terminate.  This issue appears only to occur if 'stable_time_steps' is small, and setting 'stable_time_steps' to a large value e.g. 500 removes this issue. Large values for 'stable_time_steps' should be preferred in any case, as for numerical efficiency as with small 'stable_time_steps,' it is more likely that time is wasted on computations that are not used. 
  
-### Minimal Setup
+## Minimal Setup
 
 To implement GADIT, it is instructive to read the main.cu file for a minimal example of how to initialize and execute GADIT. To implement your own thin film model, you may follow the instructions in the model_default.h file and edit appropriately.  Note that the main.cu file should also be modified to match the new parameters.
 
