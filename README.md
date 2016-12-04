@@ -21,7 +21,7 @@ time steps are computed within the convergence conditions of the Newton iteratio
 
 To implement GADIT, it is instructive to read the main.cu file for a minimal example of how to initialize and execute GADIT. To implement your own thin film model, you may follow the instructions in the model_default.h file and edit appropriately.  Note that the main.cu file should also be modified to match the new parameters.
 
-GADIT also backs up the solution at user a user specified time interval; therefore,  simulations may be stopped and started without any significant loss.
+GADIT also backs up the solution at a user specified time interval; therefore,  simulations may be stopped and started without any significant loss.
 
 ### Input 
 The only possible external input to GADIT is initial condition data. The data must be in binary 64-bit float format and place in input/InitialCondition.bin
@@ -34,7 +34,7 @@ Similar to the initial condition data,  the solution at the output times are in 
 In addition to the solution data, several files are created in the 'status' sub-directory.
 
 #### Parameters.txt
-A record of the parameters used to initialize the GADIT.
+A record of the parameters used to initialize GADIT.
 
 #### Status.txt
 Useful notifications about the status of GADIT. Primarily contains information of when the simulation was started and last backed up. 
