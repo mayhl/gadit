@@ -64,13 +64,13 @@ Below is a list of GADIT advanced features.
 ### Saving Models for Later Use
 Instead of altering the default model, you may create a custom entry for your model that may be selected in GADIT by the model ID parameter. 
 
-1) Add entry to enum 'id' in namespace model located in solver_template.h file.
+1) Add entry to enum 'id' in namespace 'model' located in solver_template.h file.
 
-2) Copy model_default and name appropriately. 
+2) Copy model_default.h file and name appropriately. 
 
-3) Rename  MODEL_DEFAULT compiler directive.
+3) Rename 'MODEL_DEFAULT' compiler directive.
 
-4) Rename namespace model_default appropriately.
+4) Rename namespace 'model_default' appropriately.
 
 5) Update 'const model::id ID' to match value created in 1).
 
