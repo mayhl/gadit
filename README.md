@@ -54,3 +54,20 @@ Binary 64-bit integer data containing the timestep indices for records in GADITs
 
 #### Temporary Files 
 The sub-folder 'temp' contains a backup of solutions. There are two files, BackupSolutionData.bin, the solution data; and BackupSolutionData.bin, a copy of the timestep_manager object.
+
+
+
+## Advanced Features
+
+Below is a list of GADIT advanced features.
+
+### Saving Models for Later Use
+Instead of altering the default model, you may create a custom entry for your model that may be selected in GADIT by the model ID parameter. 
+
+1) Add entry to enum 'id' in namespace model located in solver_template.h file.
+2) Copy model_default and name appropriately. 
+3) Rename  MODEL_DEFAULT compiler directive.
+4) Rename namespace model_default appropriately.
+5) Update 'const model::id ID' to match value created in 1).
+6) Change parameters and non-linear function definitions as needed.
+7)  Add new switch statement to model_list.h file.
