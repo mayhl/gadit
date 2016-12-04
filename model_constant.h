@@ -42,6 +42,18 @@ namespace model_constant
 		// Only required if expression for nonlinear functions 
 		// are complicated and contain many fixed terms.
 
+		std::string to_string()
+		{
+			std::string output;
+			output = format_parameter_output::make_title("NLC Model");
+
+			output += "c1   = " + format_parameter_output::datatype(this->c1) + "\n";
+			output += "c2   = " + format_parameter_output::datatype(this->c2) + "\n";
+			output += "\n";
+
+			return output;
+		}
+
 		void compute_derived_parameters()
 		{
 		}

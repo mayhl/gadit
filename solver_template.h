@@ -43,8 +43,8 @@ namespace initial_condition{
 // dummy definitions
 template <typename DATATYPE, model::id MODEL_ID> struct model_parameters
 {
-	std::string to_string() { return ""; };
-	void compute_derived_parameters() {};
+	std::string to_string() { return ""; }
+	void compute_derived_parameters();
 };
 template <typename DATATYPE, initial_condition::id IC_ID> struct initial_parameters
 {
@@ -65,7 +65,11 @@ template <typename DATATYPE, model::id MODEL_ID, initial_condition::id IC_ID> st
 	{
 		std::string output;
 		output = model.to_string();
-
+		output += spatial.to_string();
+		output += initial.to_string();
+		output += temporal.to_string();
+		output += newton.to_string();
+		output += backup.to_string();
 		return output;
 	}
 

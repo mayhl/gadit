@@ -32,28 +32,31 @@
 #define CUDA_PARAMETERS
 
 #include "work_space.h"
-
 #include "dimensions.h"
 
 namespace cuda_parameters
 { 
 	
 	// pads cells with additional points which will be set to satisfy boundary conditions.
-
+	// DO NOT CHANGE
 	int const CELL_BORDER_PADDING = 2;
 
 	int const DEBUG_MODE = false;
 
-	// parameters to tune CUDA code on specific GPUs
-
+	// Parameters that you may change with out introducing an error.
+	// Only multiples of 8 should be used.
+	// Can be used to tune CUDA code to a specific GPUs
 	int const PENTA_LU_LINE_THREAD_SIZE = 16;
 	
 	int const SIMPLE_SQUARE_BLOCK = 16;
 
-	int const SOLVE_JY_SUBLOOP_SIZE = 15;
 	int const SOLVE_JY_THREAD_SIZE = 32;
 
 	int const REDUCTION_BLOCK_SIZE = 256;
+
+
+	// Should be no greater than 15
+	int const SOLVE_JY_SUBLOOP_SIZE = 15;
 
 
 	struct kernal_launch_parameters_pair{
@@ -61,7 +64,7 @@ namespace cuda_parameters
 		dim3 block;
 	};
 
-
+	// Contains information about sub domain 
 	class kernal_launch_parameters
 	{
 

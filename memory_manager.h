@@ -136,7 +136,6 @@ namespace memory_manager
 
 	};
 
-	////template < typename DATATYPE> 
 
 	template<typename DATATYPE, typename ...Types>void freeAll(memory_unit<DATATYPE> *first, Types* ... rest)
 	{
@@ -283,20 +282,3 @@ namespace memory_manager
 
 }
 #endif
-
-//template<class DATATYPE,int MAX_ARRAYS> class MemoryManagerv2{
-//
-//public:
-//	MemoryManagerv2()
-//	{
-//		for (int i = 0; i < MAX_ARRAYS; i++)
-//		{
-//			inUse[i] = false;
-//		}
-//	};
-//private:
-//	Memory<DATATYPE> shared_global_memory [MAX_ARRAYS];
-//	bool inUse[MAX_ARRAYS];
-//};
-//
-//

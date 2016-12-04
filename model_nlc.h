@@ -65,9 +65,11 @@ namespace model_nlc
 			output += "beta = " + format_parameter_output::datatype(this->beta) + "\n";
 			output += "b    = " + format_parameter_output::datatype(this->b) + "\n";
 			output += "w    = " + format_parameter_output::datatype(this->w) + "\n";
+			output += "\n";
 
 			return output;
 		}
+
 		void compute_derived_parameters()
 		{
 			inv_w = 1 / w;;

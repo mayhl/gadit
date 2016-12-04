@@ -63,14 +63,14 @@ public:
 
 	}
 
-	void commit_data_to_files()
+	void commit_data_to_files(std::string root)
 	{
 		
-		output_append_vector<size_t>( file_directories::newtonCountData , &n_count[0] , time_step_count );
-		output_append_vector<DATATYPE>( file_directories::timestepData , &dt[0] , time_step_count  );
+		output_append_vector<size_t>(root + file_directories::newtonCountData , &n_count[0] , time_step_count );
+		output_append_vector<DATATYPE>(root + file_directories::timestepData , &dt[0] , time_step_count  );
 		
-		output_append_vector<size_t>( file_directories::gaditStatusIndices , &t_index[0] , n_status_count );
-		output_append_vector<newton_status::status >( file_directories::gaditStatus , &n_status[0] , n_status_count );
+		output_append_vector<size_t>(root + file_directories::gaditStatusIndices , &t_index[0] , n_status_count );
+		output_append_vector<newton_status::status >(root + file_directories::gaditStatus , &n_status[0] , n_status_count );
 
 		this->clean();
 

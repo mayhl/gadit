@@ -74,7 +74,7 @@ namespace format_parameter_output
 
 		output = border + "\n";
 		output += "- " + title + " -\n";
-		output += border + "\n\n";
+		output += border + "\n";
 
 		return output;
 
@@ -102,7 +102,9 @@ namespace format_parameter_output
 
 		std::string output;
 		char buff[100];
-		if (abs(val) < pow(10, -6))
+		if ( val == 0 )
+			sprintf(buff, "%i", 0.0);
+		else if (abs(val) < pow(10, -6))
 			sprintf(buff, "%e", val);
 		else if(abs(val) > pow(10, 6))
 			sprintf(buff, "%e", val);
@@ -118,7 +120,9 @@ namespace format_parameter_output
 
 		std::string output;
 		char buff[100];
-		if (abs(val) < pow(10, -6))
+		if (val == 0)
+			sprintf(buff, "%i", 0.0);
+		else if (abs(val) < pow(10, -6))
 			sprintf(buff, "%e", val);
 		else if (abs(val) > pow(10, 6))
 			sprintf(buff, "%e", val);
@@ -181,7 +185,7 @@ template <typename DATATYPE> struct spatial_parameters{
 		output += "m  = " + format_parameter_output::datatype(this->m) + "\n";
 		output += "y0 = " + format_parameter_output::datatype(this->y0) + "\n";
 		output += "ym = " + format_parameter_output::datatype(this->ym) + "\n";
-
+		output += "\n";
 		return output;
 	}
 
@@ -205,6 +209,7 @@ template <typename DATATYPE> struct newton_parameters{
 		output += "error_tolerence = " + format_parameter_output::datatype(this->error_tolerence) + "\n";
 		output += "max_iterations  = " + format_parameter_output::datatype(this->max_iterations) + "\n";
 		output += "min_iterations  = " + format_parameter_output::datatype(this->min_iterations) + "\n";
+		output += "\n";
 
 		return output;
 	}
@@ -238,9 +243,9 @@ template <typename DATATYPE> struct temporal_parameters{
 	std::string to_string()
 	{
 		std::string output;
-		output = format_parameter_output::make_title("Newton Iterations");
+		output = format_parameter_output::make_title("Temporal");
 
-		output += "t_start           = " + format_parameter_output::datatype(this->error_tolerence) + "\n";
+		output += "t_start           = " + format_parameter_output::datatype(this->t_start) + "\n";
 		output += "t_end             = " + format_parameter_output::datatype(this->t_end) + "\n";
 		output += "dt_out            = " + format_parameter_output::datatype(this->dt_out) + "\n";
 		output += "dt_min            = " + format_parameter_output::datatype(this->dt_min) + "\n";
@@ -249,27 +254,21 @@ template <typename DATATYPE> struct temporal_parameters{
 		output += "min_stable_step   = " + format_parameter_output::datatype(this->min_stable_step) + "\n";
 		output += "dt_ratio_increase = " + format_parameter_output::datatype(this->dt_ratio_increase) + "\n";
 		output += "dt_ratio_decrease = " + format_parameter_output::datatype(this->dt_ratio_decrease) + "\n";
+		output += "\n";
 
 		return output;
 	}
 
 };
  struct backup_parameters{
-	long long updateTime ;
+	unsigned long long updateTime ;
 	std::string to_string()
 	{
 		std::string output;
-		output = format_parameter_output::make_title("Newton Iterations");
+		output = format_parameter_output::make_title("Backup");
 
-		output += "t_start           = " + format_parameter_output::datatype(this->error_tolerence) + "\n";
-		output += "t_end             = " + format_parameter_output::datatype(this->t_end) + "\n";
-		output += "dt_out            = " + format_parameter_output::datatype(this->dt_out) + "\n";
-		output += "dt_min            = " + format_parameter_output::datatype(this->dt_min) + "\n";
-		output += "dt_max            = " + format_parameter_output::datatype(this->dt_max) + "\n";
-		output += "dt_init           = " + format_parameter_output::datatype(this->dt_init) + "\n";
-		output += "min_stable_step   = " + format_parameter_output::datatype(this->min_stable_step) + "\n";
-		output += "dt_ratio_increase = " + format_parameter_output::datatype(this->dt_ratio_increase) + "\n";
-		output += "dt_ratio_decrease = " + format_parameter_output::datatype(this->dt_ratio_decrease) + "\n";
+		output += "updateTime = " + format_parameter_output::datatype(this->updateTime) + "\n";
+		output += "\n";
 
 		return output;
 	}

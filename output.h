@@ -62,9 +62,10 @@ namespace file_directories
 
 		std::string gaditStatus 		= statusDir + "/GADITstatus.bin";
 		std::string gaditStatusIndices	= statusDir + "/GADITstatusIndices.bin";
-
+		
 		std::string statusData			= statusDir + "/Status.txt";
 
+		std::string parameterData		= statusDir + "/Parameters.txt";
 		// clears hard disk data if incomplete backup  data found.
 
 		
@@ -80,9 +81,6 @@ namespace file_directories
 			temp_file_dir = root + statusDir;
 			std::tr2::sys::create_directories(temp_file_dir);
 
-			temp_file_dir = root + inputDir;
-			std::tr2::sys::create_directories(temp_file_dir);
-
 			temp_file_dir = root + outputDir;
 			std::tr2::sys::create_directories(temp_file_dir);
 		}
@@ -96,6 +94,7 @@ namespace file_directories
 			remove(gaditStatus.c_str());
 			remove(gaditStatusIndices.c_str());
 			remove(statusData.c_str());
+			remove(parameterData.c_str());
 		}
 
 }

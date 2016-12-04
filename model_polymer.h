@@ -46,6 +46,21 @@ namespace model_polymer
 		// Only required if expression for nonlinear functions 
 		// are complicated and contain many fixed terms.
 	
+		std::string to_string()
+		{
+			std::string output;
+			output = format_parameter_output::make_title("Polymer Model");
+
+			output += "cC   = " + format_parameter_output::datatype(this->cC) + "\n";
+			output += "ci   = " + format_parameter_output::datatype(this->ci) + "\n";
+			output += "ASIO = " + format_parameter_output::datatype(this->ASIO) + "\n";
+			output += "ASI  = " + format_parameter_output::datatype(this->ASI) + "\n";
+			output += "d    = " + format_parameter_output::datatype(this->d) + "\n";
+			output += "\n";
+
+			return output;
+		}
+
 		void compute_derived_parameters()
 		{
 		}
@@ -66,7 +81,6 @@ namespace model_polymer
 			DATATYPE term3 = 2 * (ASIO - ASI)*pow(inv_hd, 3);
 
 			DATATYPE term4 = term1 + term2 + term3;
-
 
 			f2 = -h3*term4;
 

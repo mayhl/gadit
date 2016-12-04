@@ -55,8 +55,8 @@ public:
 	void initialize(parameters<DATATYPE,MODEL_ID,IC_ID> paras )
 	{
 		paras.spatial.compute_derived_parameters();
+		paras.model.compute_derived_parameters();
 		this->paras = paras;
-		//paras.spatial.set_partition(ds, x_0, x_n, y_0, y_m);
 
 		int padding = cuda_parameters::CELL_BORDER_PADDING;
 
@@ -94,7 +94,6 @@ public:
 			u_ws.y->data_host[j] = paras.spatial.y0 + (j + 0.5)*paras.spatial.ds;
 		}
 
-
 	}
 
 
@@ -116,14 +115,15 @@ public:
 		// loading data if temporary data exisits.
 		if ( isFirstRun )
 		{
-			file_directories::clean();
 			file_directories::make_directories(paras.io.root_directory);
+			file_directories::clean();
+			write_to_new_file( paras.io.root_directory + file_directories::parameterData, paras.to_string() , false);
 
 			t_mang.initialize( paras.temporal );
 			initial_condition_list::compute<DATATYPE,IC_ID>( u_ws.x , u_ws.y , u_ws.h , dims , paras.spatial , paras.initial );
 
 			outputString =  get_time_stamp() + "Started simulations from initial condition.";
-			write_to_new_file( file_directories::statusData , outputString, paras.io.is_console_output);
+			write_to_new_file(paras.io.root_directory + file_directories::statusData , outputString, paras.io.is_console_output);
 		}
 		else
 		{		
@@ -206,10 +206,23 @@ public:
 
 				save_object<timestep_manager<DATATYPE>>( paras.io.root_directory + file_directories::backupFileInfo , t_mang );
 
-				log_file.commit_data_to_files();
+				log_file.commit_data_to_files(paras.io.root_directory);
 			}
 
 		}
+
+		char buff[100];
+
+		sprintf(buff, "Backing up solution at t = %11.10E to file.", t_mang.get_current_time());
+		outputString = get_time_stamp() + buff;
+		write_to_old_file(paras.io.root_directory + file_directories::statusData, outputString, paras.io.is_console_output);
+
+		memory_manager::copyDeviceToHost<DATATYPE>(u_ws.h);
+		output_binary(paras.io.root_directory + file_directories::backupSolution, u_ws.h->data_host, dims.n_pad, dims.m_pad);
+
+		save_object<timestep_manager<DATATYPE>>(paras.io.root_directory + file_directories::backupFileInfo, t_mang);
+
+		log_file.commit_data_to_files(paras.io.root_directory);
 
 	};
 

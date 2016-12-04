@@ -48,6 +48,22 @@ namespace ic_linear_waves
 		DATATYPE epy;
 		DATATYPE epx;
 		DATATYPE h0;
+
+		std::string to_string()
+		{
+
+			std::string output;
+			output = format_parameter_output::make_title("Linear Wave Initial Condition");
+
+			output += "h0  = " + format_parameter_output::datatype(this->h0) + "\n";
+			output += "nx  = " + format_parameter_output::datatype(this->nx) + "\n";
+			output += "ny  = " + format_parameter_output::datatype(this->ny) + "\n";
+			output += "epx = " + format_parameter_output::datatype(this->epx) + "\n";
+			output += "epy = " + format_parameter_output::datatype(this->epy) + "\n";
+			output += "\n";
+
+			return output;
+		}
 	};
 
 	template<typename DATATYPE, initial_condition::id IC_ID> DATATYPE 
@@ -61,6 +77,8 @@ namespace ic_linear_waves
 		return parasInitial.h0*( 1 + parasInitial.epx*( cos (parasInitial.nx*PI*x/(parasSpatial.xn-parasSpatial.x0) ) )
 			                       + parasInitial.epy*( cos (parasInitial.ny*PI*y/(parasSpatial.ym-parasSpatial.y0) ) ) );	
 	}
+
+
 
 }
 
