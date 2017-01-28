@@ -115,7 +115,7 @@ template<typename DATATYPE> struct reduced_device_workspace
 	DATATYPE *Jy_d;
 	DATATYPE *Jy_e;
 
-	// Varibles used solve penta diagonal matrix
+	// Variables used solve penta diagonal matrix
 
 
 	DATATYPE *LU_a;
@@ -124,21 +124,10 @@ template<typename DATATYPE> struct reduced_device_workspace
 	DATATYPE *LU_d;
 	DATATYPE *LU_e;
 
-	DATATYPE *A_a;
-	DATATYPE *A_b;
-	DATATYPE *A_c;
-	DATATYPE *A_d;
-	DATATYPE *A_e;
+
 
 
 	char *solution_flags;
-	//bool *newton_converge_small;
-
-
-	PentaLUMatrix<DATATYPE> pLU;
-	PentaLMatrix<DATATYPE> *pL;
-	PentaUMatrix<DATATYPE> *pU;
-	DATATYPE *pf;
 
 
 };
@@ -198,18 +187,7 @@ public:
 
 
 	memory_unit<DATATYPE>  *w_transpose;
-
 	memory_unit<char> *solution_flags;
-
-
-
-
-	memory_unit<DATATYPE> *pf;
-	memory_unit<PentaLMatrix<DATATYPE>> *pL;
-	memory_unit<PentaUMatrix<DATATYPE>> *pU;
-
-
-
 
 
 
@@ -224,16 +202,17 @@ public:
 		x = new memory_unit<DATATYPE>(memory_scope::HOST_ONLY, dims.n);
 		y = new memory_unit<DATATYPE>(memory_scope::HOST_ONLY, dims.m);
 
-		h_guess = new memory_unit<DATATYPE>(memory_scope::NON_PINNED, dims.n_pad, dims.m_pad);
+		h_guess = new memory_unit<DATATYPE>(memory_scope::DEVICE_ONLY, dims.n_pad, dims.m_pad);
 
 
-		f1 = new memory_unit<DATATYPE>(memory_scope::NON_PINNED, dims.n_pad, dims.m_pad);
+		f1 = new memory_unit<DATATYPE>(memory_scope::DEVICE_ONLY, dims.n_pad, dims.m_pad);
 		df1 = new memory_unit<DATATYPE>(f1);
 		f2 = new memory_unit<DATATYPE>(f1);
 		df2 = new memory_unit<DATATYPE>(f1);
 
-		F = new memory_unit<DATATYPE>(memory_scope::NON_PINNED, dims.n, dims.m);
-		F_fixed = new memory_unit<DATATYPE>(memory_scope::NON_PINNED, dims.n, dims.m);
+
+		F = new memory_unit<DATATYPE>(memory_scope::DEVICE_ONLY, dims.n, dims.m);
+		F_fixed = new memory_unit<DATATYPE>(memory_scope::DEVICE_ONLY, dims.n, dims.m);
 
 		J_a = new memory_unit<DATATYPE>(F);
 		J_b = new memory_unit<DATATYPE>(F);
@@ -246,11 +225,7 @@ public:
 		solution_flags = new memory_unit<char>(memory_scope::PINNED, dims.n_reduced , dims.m_reduced);
 
 
-		//pf = new memory_unit<DATATYPE>(F);
-
-		//pL = new memory_unit<PentaLMatrix<DATATYPE>>(memory_scope::NON_PINNED, dims.n, dims.m);
-		//pU = new memory_unit<PentaUMatrix<DATATYPE>>(memory_scope::NON_PINNED, dims.n, dims.m);
-
+	
 
 		initiateVaribles(h, h_guess);
 		initiateVaribles(x, y);
@@ -258,7 +233,6 @@ public:
 		initiateVaribles(J_a, J_b, J_c, J_d, J_e, F, F_fixed);
 		initiateVaribles(w_transpose);
 		initiateVaribles(solution_flags);
-	//	initiateVaribles(pf, pL, pU);
 
 
 
@@ -282,7 +256,7 @@ public:
 		reduced_dev_ws.v = F->data_device;
 
 
-		// matricies share same memory space
+		// matrices share same memory space
 
 
 		reduced_dev_ws.Jx_a = J_a->data_device;
@@ -297,11 +271,11 @@ public:
 		reduced_dev_ws.Jy_d = J_d->data_device;
 		reduced_dev_ws.Jy_e = J_e->data_device;
 
-		reduced_dev_ws.A_a = J_a->data_device;
-		reduced_dev_ws.A_b = J_b->data_device;
-		reduced_dev_ws.A_c = J_c->data_device;
-		reduced_dev_ws.A_d = J_d->data_device;
-		reduced_dev_ws.A_e = J_e->data_device;
+		//reduced_dev_ws.A_a = J_a->data_device;
+		//reduced_dev_ws.A_b = J_b->data_device;
+		//reduced_dev_ws.A_c = J_c->data_device;
+		//reduced_dev_ws.A_d = J_d->data_device;
+		//reduced_dev_ws.A_e = J_e->data_device;
 
 		reduced_dev_ws.LU_a = J_a->data_device;
 		reduced_dev_ws.LU_b = J_b->data_device;
@@ -313,14 +287,6 @@ public:
 
 		reduced_dev_ws.solution_flags = solution_flags->data_device;
 
-
-		//reduced_dev_ws.pLU._L = pL->data_device;
-		//reduced_dev_ws.pLU._U = pU->data_device;
-		//reduced_dev_ws.pLU._f = pf->data_device;
-
-		//reduced_dev_ws.pL = pL->data_device;
-		//reduced_dev_ws.pU = pU->data_device;
-		//reduced_dev_ws.pf = pf->data_device;
 
 
 

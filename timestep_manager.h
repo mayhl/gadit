@@ -120,7 +120,7 @@ public:
 	}
 
 
-private:
+//private:
 	DATATYPE dt; 
 	DATATYPE dt_temp;
 	
@@ -187,7 +187,7 @@ private:
 
 			t_next = t_out + dt;
 
-			t_out = (outputStep+1)*parameters.dt_out;
+			t_out = t_out + parameters.dt_out;
 
 			isOutputStep = false;
 			isSuccessfulOutputStep = true;

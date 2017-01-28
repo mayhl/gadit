@@ -44,7 +44,7 @@ namespace model_default
 		// Derived parameters common to each spacial point,
 		// precomputed on CPU to remove redundant GPU computations.
 		// Only required if expression for nonlinear functions 
-		// are complicated and contain many fixed terms.
+		// are complicated but constant valued terms.
 		DATATYPE inv_w;
 		DATATYPE beta2;
 		DATATYPE w2;
@@ -54,6 +54,21 @@ namespace model_default
 		DATATYPE cK_b2;
 		DATATYPE scaled_cK_b3;
 
+		// Required function. Can leave empty, but definition required.
+		void compute_derived_parameters()
+		{
+			inv_w = 1 / w;;
+			beta2 = beta*beta;
+			w2 = w*w;
+			three_b = 3 * b;
+			two_w = 2 * w;
+			scaled_cN = 0.25*cN*inv_w;
+			cK_b2 = cK*b*b;
+			scaled_cK_b3 = 3.0*cK*b*b*b;
+		}
+
+		// String data to print parameter values to file.
+		// Required function. Can leave empty, but definition required.
 		std::string to_string()
 		{
 			std::string output;
@@ -70,18 +85,8 @@ namespace model_default
 			return output;
 		}
 
-		void compute_derived_parameters()
-		{
-			inv_w = 1 / w;;
-			beta2 = beta*beta;
-			w2 = w*w;
-			three_b = 3 * b;
-			two_w = 2 * w;
-			scaled_cN = 0.25*cN*inv_w;
-			cK_b2 = cK*b*b;
-			scaled_cK_b3 = 3.0*cK*b*b*b;
-		}
 
+		// Optional command
 		DATATYPE getGrowthRate(DATATYPE h, DATATYPE q)
 		{
 			DATATYPE gRate;
@@ -113,6 +118,8 @@ namespace model_default
 
 
 		}
+
+		// Optional command
 		DATATYPE getMaxGrowthMode(DATATYPE h)
 		{
 			DATATYPE qm;
@@ -142,7 +149,6 @@ namespace model_default
 		}
 
 	};
-
 
 	// Dummy subroutine template created so switch in subroutine
 	// 'newton_iterative_method::compute_nonlinear_functions()'

@@ -102,17 +102,17 @@ public:
 
 		string outputString;
 		timestep_manager<DATATYPE> t_mang;
-		backup_manager<DATATYPE> b_mang;
+		backup_manager<DATATYPE> sol_b_mang;
 		status_logger<DATATYPE> log_file;
 		
 		newton_status::status n_status;
 		timestep_manager_status::status t_status;
 
-		b_mang.initialize( paras.backup);
+		sol_b_mang.initialize( paras.backup.updateTime );
 
 		bool isFirstRun = !fileExists( file_directories::backupFileInfo );
 
-		// loading data if temporary data exisits.
+		// loading data if temporary data exists.
 		if ( isFirstRun )
 		{
 			file_directories::make_directories(paras.io.root_directory);
@@ -120,7 +120,7 @@ public:
 			write_to_new_file( paras.io.root_directory + file_directories::parameterData, paras.to_string() , false);
 
 			t_mang.initialize( paras.temporal );
-			initial_condition_list::compute<DATATYPE,IC_ID>( u_ws.x , u_ws.y , u_ws.h , dims , paras.spatial , paras.initial );
+			initial_condition_list::compute<DATATYPE,IC_ID>( u_ws.x , u_ws.y , u_ws.h , dims , paras.spatial , paras.initial , paras.io);
 
 			outputString =  get_time_stamp() + "Started simulations from initial condition.";
 			write_to_new_file(paras.io.root_directory + file_directories::statusData , outputString, paras.io.is_console_output);
@@ -131,6 +131,14 @@ public:
 			load_object<timestep_manager<DATATYPE>>( paras.io.root_directory + file_directories::backupFileInfo , t_mang );
 			load_binary ( file_directories::backupSolution , u_ws.h->data_host , dims.n_pad , dims.m_pad );
 			
+
+			//t_mang.t = 1930.0;
+			//t_mang.outputStep = 193;
+			//t_mang.t_next = t_mang.t + t_mang.parameters.dt_out;
+
+			//t_mang.dt = 0.0001;
+			//t_mang.t_next = t_mang.t + t_mang.dt;
+
 			char buff[100];				
 			sprintf(buff,"Continuing simulations from backup data at t = %11.10E." , t_mang.get_current_time() );
 			outputString =  get_time_stamp() + buff;
@@ -185,7 +193,7 @@ public:
 				outputString =  get_time_stamp() + buff;
 				write_to_old_file( paras.io.root_directory +  file_directories::statusData , outputString, paras.io.is_console_output);
 
-				sprintf(buff, "/solution_%07d.dat", t_mang.get_next_output_index() );
+				sprintf(buff, "/solution_%07d.bin", t_mang.get_next_output_index() );
 
 				std::string outputFileDir;
 				outputFileDir = paras.io.root_directory + file_directories::outputDir + buff;
@@ -193,7 +201,7 @@ public:
 				output_binary( outputFileDir , u_ws.h->data_host , dims.n_pad , dims.m_pad );
 			}
 
-			if ( b_mang.is_backup_time() )
+			if ( sol_b_mang.is_backup_time() )
 			{
 				char buff[100];		
 				

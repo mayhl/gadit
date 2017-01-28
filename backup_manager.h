@@ -37,9 +37,9 @@ template <typename DATATYPE> class backup_manager
 public:
 
 
-	void initialize( backup_parameters parameters)
+	void initialize(long long backup_time )
 	{
-		this->parameters = parameters;
+		this->backup_time = backup_time;
 		timeLastupdate =  std::chrono::system_clock::now();
 	}
 
@@ -49,7 +49,7 @@ public:
 
 		long long timeDiff =  std::chrono::duration_cast< std::chrono::minutes >(currentTime - timeLastupdate).count();
 
-		if ( timeDiff > parameters.updateTime )
+		if ( timeDiff > backup_time)
 		{
 			timeLastupdate = currentTime;
 			return true;
@@ -60,7 +60,7 @@ public:
 
 private:
 	
-	backup_parameters parameters;
+	long long backup_time;
 
 	std::chrono::system_clock::time_point timeLastupdate;
 	std::chrono::system_clock::time_point currentTime;

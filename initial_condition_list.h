@@ -92,14 +92,14 @@ namespace initial_condition_list{
 	};
 
 	template<typename DATATYPE, initial_condition::id IC_ID> load_status compute(DATATYPE *x, DATATYPE *y, DATATYPE *h, dimensions dims , 
-		spatial_parameters<DATATYPE> parasSpatial, initial_parameters<DATATYPE,IC_ID> parasInitial)
+		spatial_parameters<DATATYPE> parasSpatial, initial_parameters<DATATYPE,IC_ID> parasInitial , io_parameters parasIo )
 	{	
 
 
 		if ( IC_ID == initial_condition::LOAD_FROM_FILE )
 		{
 			bool is_file_loaded;
-			is_file_loaded = load_binary ( file_directories::icInputFile , h , dims.n_pad , dims.m_pad );
+			is_file_loaded = load_binary (parasIo.root_directory + file_directories::icInputFile , h , dims.n_pad , dims.m_pad );
 
 			if ( is_file_loaded ) 
 				return load_status::SUCCESS;
@@ -120,7 +120,7 @@ namespace initial_condition_list{
 					switch (IC_ID)
 					{
 					case initial_condition::LINEAR_WAVES:
-						h[k] = ic_linear_waves::compute<DATATYPE, initial_condition::LINEAR_WAVES>( x[i] , y[j] , parasSpatial , parasInitial);
+						h[k] = ic_linear_waves::compute<DATATYPE, IC_ID>( x[i] , y[j] , parasSpatial , parasInitial);
 						break;
 					}
 				}
@@ -140,9 +140,9 @@ namespace initial_condition_list{
 	// wrapper for memory_units to pass host pointers  
 	template<typename DATATYPE, initial_condition::id IC_ID> load_status compute
 		(memory_unit<DATATYPE> *x, memory_unit<DATATYPE> *y, memory_unit<DATATYPE> *h, dimensions dims, 
-		spatial_parameters<DATATYPE> parasSpatial ,   initial_parameters<DATATYPE,IC_ID> parasInitial)
+		spatial_parameters<DATATYPE> parasSpatial ,   initial_parameters<DATATYPE,IC_ID> parasInitial, io_parameters parasIo)
 	{
-		return compute<DATATYPE,IC_ID>(x->data_host, y->data_host, h->data_host, dims, parasSpatial, parasInitial);
+		return compute<DATATYPE,IC_ID>(x->data_host, y->data_host, h->data_host, dims, parasSpatial, parasInitial, parasIo);
 	};
 }
 

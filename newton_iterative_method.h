@@ -181,8 +181,6 @@ namespace  newton_iterative_method
 		void preprocessing(reduced_device_workspace<DATATYPE> d_ws, dimensions dims, spatial_parameters<DATATYPE> spatialParas, model_parameters<DATATYPE, MODEL_ID> modelParas, DATATYPE dt, newton_parameters<DATATYPE> newt_paras)
 	{
 
-			
-
 			int x = blockIdx.x*blockDim.x + threadIdx.x;
 			int y = blockIdx.y*blockDim.y + threadIdx.y;
 
