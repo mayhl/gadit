@@ -75,8 +75,8 @@ template <typename DATATYPE>struct penta_diag_row
 //		data transfer between host (CPU) and device (GPU). 
 //
 //		A smaller version of "unified_work_space" (contained here) which,
-//			1) reduces the size of the object passed to kernal;
-//			2) reduces the degree of pointer seperation between passed object
+//			1) reduces the size of the object passed to kernel;
+//			2) reduces the degree of pointer separation between passed object
 //			   and reference location created by 'memory_manager.h.
 // WARNING: 
 //		Must be passed by values. Passing by pointer will result in invalid pointers.
@@ -86,7 +86,7 @@ template <typename DATATYPE>struct penta_diag_row
 template<typename DATATYPE> struct reduced_device_workspace
 {
 
-	// Varibles used to compute the linear system to solve at each newton iteration;
+	// Variables used to compute the linear system to solve at each newton iteration;
 
 	DATATYPE *h;
 	DATATYPE *h_guess;
@@ -116,16 +116,11 @@ template<typename DATATYPE> struct reduced_device_workspace
 	DATATYPE *Jy_e;
 
 	// Variables used solve penta diagonal matrix
-
-
 	DATATYPE *LU_a;
 	DATATYPE *LU_b;
 	DATATYPE *LU_c;
 	DATATYPE *LU_d;
 	DATATYPE *LU_e;
-
-
-
 
 	char *solution_flags;
 
@@ -142,8 +137,8 @@ template<typename DATATYPE> struct reduced_device_workspace
 //			2) and total global memory on device (GPU).
 //
 //		Serves three (3) purposes:
-//			1) Declare varibles and storage location(s), handled by 'memory_unit';
-//			2) Allocate and deallocated memory, simplifed using 'memory_manager.h';
+//			1) Declare variables and storage location(s), handled by 'memory_unit';
+//			2) Allocate and deallocated memory, simplified using 'memory_manager.h';
 //			3) With 'reduced_device_workspace', pointer reference value may be copied 
 //			   (from 'memory_unit') to:
 //					a) reduce total memory usage,
@@ -225,17 +220,12 @@ public:
 		solution_flags = new memory_unit<char>(memory_scope::PINNED, dims.n_reduced , dims.m_reduced);
 
 
-	
-
 		initiateVaribles(h, h_guess);
 		initiateVaribles(x, y);
 		initiateVaribles(f1, df1, f2, df2);
 		initiateVaribles(J_a, J_b, J_c, J_d, J_e, F, F_fixed);
 		initiateVaribles(w_transpose);
 		initiateVaribles(solution_flags);
-
-
-
 
 		// unique allocations
 		reduced_dev_ws.h = h->data_device;
@@ -257,8 +247,6 @@ public:
 
 
 		// matrices share same memory space
-
-
 		reduced_dev_ws.Jx_a = J_a->data_device;
 		reduced_dev_ws.Jx_b = J_b->data_device;
 		reduced_dev_ws.Jx_c = J_c->data_device;
@@ -271,12 +259,6 @@ public:
 		reduced_dev_ws.Jy_d = J_d->data_device;
 		reduced_dev_ws.Jy_e = J_e->data_device;
 
-		//reduced_dev_ws.A_a = J_a->data_device;
-		//reduced_dev_ws.A_b = J_b->data_device;
-		//reduced_dev_ws.A_c = J_c->data_device;
-		//reduced_dev_ws.A_d = J_d->data_device;
-		//reduced_dev_ws.A_e = J_e->data_device;
-
 		reduced_dev_ws.LU_a = J_a->data_device;
 		reduced_dev_ws.LU_b = J_b->data_device;
 		reduced_dev_ws.LU_c = J_c->data_device;
@@ -284,32 +266,18 @@ public:
 		reduced_dev_ws.LU_e = J_e->data_device;
 
 
-
 		reduced_dev_ws.solution_flags = solution_flags->data_device;
 
-
-
-
-	}
-
-	~unified_work_space()
-	{/*
-		freeAll(h, h_guess);
-		freeAll(x, y);
-		freeAll(f1, df1, f2, df2);
-		freeAll(J_a, J_b, J_c, J_d, J_e, F, F_fixed);*/
 	}
 
 	void clean_workspace()
 	{
-
 		freeAll(h, h_guess);
 		freeAll(x, y);
 		freeAll(f1, df1, f2, df2);
 		freeAll(J_a, J_b, J_c, J_d, J_e, F, F_fixed);
 		freeAll(w_transpose);
 		freeAll(solution_flags);
-		//freeAll(pf, pL, pU);
 	}
 };
 

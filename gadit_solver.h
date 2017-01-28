@@ -131,14 +131,6 @@ public:
 			load_object<timestep_manager<DATATYPE>>( paras.io.root_directory + file_directories::backupFileInfo , t_mang );
 			load_binary ( file_directories::backupSolution , u_ws.h->data_host , dims.n_pad , dims.m_pad );
 			
-
-			//t_mang.t = 1930.0;
-			//t_mang.outputStep = 193;
-			//t_mang.t_next = t_mang.t + t_mang.parameters.dt_out;
-
-			//t_mang.dt = 0.0001;
-			//t_mang.t_next = t_mang.t + t_mang.dt;
-
 			char buff[100];				
 			sprintf(buff,"Continuing simulations from backup data at t = %11.10E." , t_mang.get_current_time() );
 			outputString =  get_time_stamp() + buff;
