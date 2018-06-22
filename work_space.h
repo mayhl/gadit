@@ -26,6 +26,7 @@
 #include "memory_manager.h"
 #include "cuda_parameters.h"
 #include "dimensions.h"
+#include "parameters.h"
 
 template <typename DATATYPE>
 struct __align__(16) PentaLMatrix
@@ -52,9 +53,8 @@ struct PentaLUMatrix
 };
 
 
-
-
-template <typename DATATYPE>struct penta_diag_row
+template <typename DATATYPE>
+struct penta_diag_row
 {
 
 	DATATYPE a;
@@ -83,7 +83,8 @@ template <typename DATATYPE>struct penta_diag_row
 //																									//
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<typename DATATYPE> struct reduced_device_workspace
+template<typename DATATYPE> 
+struct reduced_device_workspace
 {
 
 	// Variables used to compute the linear system to solve at each newton iteration;
@@ -96,6 +97,9 @@ template<typename DATATYPE> struct reduced_device_workspace
 
 	DATATYPE *f2;
 	DATATYPE *df2;
+
+	DATATYPE *mu1;
+	DATATYPE *mu2;
 
 	DATATYPE *F_fixed;
 	DATATYPE *F;
@@ -152,9 +156,12 @@ template<typename DATATYPE> struct reduced_device_workspace
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 using namespace memory_manager;
 
-template<typename DATATYPE> class unified_work_space
+template<typename DATATYPE> 
+class unified_work_space
 {
 //
+private:
+	model::id model_id;
 public:
 	reduced_device_workspace<DATATYPE> reduced_dev_ws;
 
@@ -170,6 +177,11 @@ public:
 
 	memory_unit<DATATYPE>  *f2;
 	memory_unit<DATATYPE>  *df2;
+
+
+	memory_unit<DATATYPE>  *mu1;
+	memory_unit<DATATYPE>  *mu2;
+	memory_unit<DATATYPE>  *phi;
 
 	memory_unit<DATATYPE>  *F_fixed;
 	memory_unit<DATATYPE>  *F;
@@ -187,10 +199,13 @@ public:
 
 
 	unified_work_space(){};
-	
-	void initalize_memory(dimensions dims)
-	{ 
 
+
+
+	
+	void initalize_memory(dimensions dims , model::id model_id)
+	{ 
+		this->model_id = model_id;
 
 		h = new memory_unit<DATATYPE>(memory_scope::PINNED, dims.n_pad, dims.m_pad);
 
@@ -205,6 +220,13 @@ public:
 		f2 = new memory_unit<DATATYPE>(f1);
 		df2 = new memory_unit<DATATYPE>(f1);
 
+		if (model_id == model::NLC_ANCHORING)
+		{
+			phi = new memory_unit<DATATYPE>(memory_scope::NON_PINNED, dims.n_pad, dims.m_pad);
+			mu1 = new memory_unit<DATATYPE>(memory_scope::PINNED, dims.n_pad, dims.m_pad);
+			mu2 = new memory_unit<DATATYPE>(mu1);
+		}
+
 
 		F = new memory_unit<DATATYPE>(memory_scope::DEVICE_ONLY, dims.n, dims.m);
 		F_fixed = new memory_unit<DATATYPE>(memory_scope::DEVICE_ONLY, dims.n, dims.m);
@@ -214,6 +236,8 @@ public:
 		J_d = new memory_unit<DATATYPE>(F);
 		J_c = new memory_unit<DATATYPE>(F);
 		J_e = new memory_unit<DATATYPE>(F);
+
+
 
 		w_transpose = new memory_unit<DATATYPE>(F);
 
@@ -226,6 +250,9 @@ public:
 		initiateVaribles(J_a, J_b, J_c, J_d, J_e, F, F_fixed);
 		initiateVaribles(w_transpose);
 		initiateVaribles(solution_flags);
+
+		if (model_id == model::NLC_ANCHORING) initiateVaribles(mu1, mu2, phi);
+	
 
 		// unique allocations
 		reduced_dev_ws.h = h->data_device;
@@ -245,6 +272,12 @@ public:
 		// save memory since new F requires v be added to h_guess
 		reduced_dev_ws.v = F->data_device;
 
+
+		if (model_id == model::NLC_ANCHORING)
+		{
+			reduced_dev_ws.mu1 = mu1->data_device;
+			reduced_dev_ws.mu2 = mu2->data_device;
+		}
 
 		// matrices share same memory space
 		reduced_dev_ws.Jx_a = J_a->data_device;
@@ -278,6 +311,11 @@ public:
 		freeAll(J_a, J_b, J_c, J_d, J_e, F, F_fixed);
 		freeAll(w_transpose);
 		freeAll(solution_flags);
+
+		if (model_id == model::NLC_ANCHORING)
+		{
+			freeAll(mu1, mu2, phi);
+		}
 	}
 };
 

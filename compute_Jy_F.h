@@ -21,7 +21,7 @@
 
 
 // ----------------------------------------------------------------------------------
-// Name:		compute_Jx_F.h
+// Name:		compute_Jy_F.h
 // Version: 	1.0
 // Purpose:		Forms system of penta-diagonal systems solving ADI method in y
 //				direction. Saves transpose of data to allow memory coalescence for 
@@ -40,18 +40,17 @@
 #include "work_space.h"
 #include "boundary_conditions.h"
 
-int const PADDING2 = 2;
+namespace compute_Jy_F
+{ 
 
-struct indices_Jy
-{
-	int globalIdx;
-	int shifted_padded_globalIdx_kpp;
-	int y;
-};
+	int const PADDING2 = 2;
 
-
-
-
+	struct indices_Jy
+	{
+		int globalIdx;
+		int shifted_padded_globalIdx_kpp;
+		int y;
+	};
 
 // loading additional rows 
 template <typename DATATYPE, int THREAD_SIZE, bool FIRST_NEWTON_ITERATION, int LOAD_SIZE> __device__
@@ -216,7 +215,7 @@ template <typename DATATYPE, int THREAD_SIZE, bool FIRST_NEWTON_ITERATION, int L
 
 }
 
-template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_ITERATION, int LOAD_SIZE, boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM> __device__
+template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_ITERATION, int LOAD_SIZE, boundary_condtion_type::IDs  BC_Y0, boundary_condtion_type::IDs  BC_YM> __device__
 	void compute_Jy_and_F_row_single(
 		DATATYPE s_h_lmm[LOAD_SIZE], DATATYPE s_h_lm[LOAD_SIZE], DATATYPE s_h_l0[LOAD_SIZE], DATATYPE s_h_lp[LOAD_SIZE], DATATYPE s_h_lpp[LOAD_SIZE],
 		DATATYPE s_f1_lm[LOAD_SIZE], DATATYPE s_f1_l0[LOAD_SIZE], DATATYPE s_f1_lp[LOAD_SIZE],
@@ -248,7 +247,6 @@ template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_
 		(s_f2_lp[k0] + s_f2_l0[k0])*(s_h_lp[k0] - s_h_l0[k0]);
 
 	
-
 	DATATYPE r_nonLinearRHS;
 	r_nonLinearRHS = r_nonLinearRHS_divgradlaplace + r_nonLinearRHS_divgrad;
 
@@ -284,18 +282,25 @@ template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_
 	DATATYPE  HY_L0_L0;			DATATYPE  HY_L0_LP;
 	DATATYPE  HY_LM_L0;			DATATYPE  HY_LM_LP;
 
+
+
+
+
+
 	penta_diag_row<DATATYPE> Jy;
 	bool custom_Jy_row;
 
-	if (2 < idx.y && idx.y < dims.m - 3) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::INTERIOR, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
 
-	if (idx.y == 0) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::FIRST, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
-	if (idx.y == 1) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::SECOND, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
-	if (idx.y == 2) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::THIRD, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
 
-	if (idx.y == (dims.m - 1)) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::FIRST_LAST, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
-	if (idx.y == (dims.m - 2)) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::SECOND_LAST, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
-	if (idx.y == (dims.m - 3)) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::THIRD_LAST, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
+	if (2 < idx.y && idx.y < dims.m - 3) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::INTERIOR, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
+
+	if (idx.y == 0) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::FIRST, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
+	if (idx.y == 1) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::SECOND, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
+	if (idx.y == 2) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::THIRD, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
+
+	if (idx.y == (dims.m - 1)) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::FIRST_LAST, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
+	if (idx.y == (dims.m - 2)) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::SECOND_LAST, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
+	if (idx.y == (dims.m - 3)) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::THIRD_LAST, BC_Y0, BC_YM>(HYYY_LP_L0, HYYY_LP_LP, HYYY_L0_L0, HYYY_L0_LP, HYYY_LM_L0, HYYY_LM_LP, HYYY_LMM_L0, HYYY_LMM_LP, HY_L0_L0, HY_L0_LP, HY_LM_L0, HY_LM_LP, Jy, custom_Jy_row);
 
 	if (!custom_Jy_row)
 	{
@@ -342,7 +347,7 @@ template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_
 	
 }
 
-template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_ITERATION, int LOAD_SIZE,boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM> __device__
+template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_ITERATION, int LOAD_SIZE,boundary_condtion_type::IDs  BC_Y0, boundary_condtion_type::IDs  BC_YM> __device__
 	void compute_Jy_and_F_row_subloop(
 	reduced_device_workspace<DATATYPE> d_ws, indices_Jy &idx, dimensions dims,
 		DATATYPE s_h_lmm[LOAD_SIZE], DATATYPE s_h_lm[LOAD_SIZE], DATATYPE s_h_l0[LOAD_SIZE], DATATYPE s_h_lp[LOAD_SIZE], DATATYPE s_h_lpp[LOAD_SIZE],
@@ -368,7 +373,7 @@ template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_
 		compute_Jy_and_F_row_single<DATATYPE, BLOCK_SIZE, THREAD_SIZE, FIRST_NEWTON_ITERATION, LOAD_SIZE, BC_Y0, BC_YM>(s_h_lpp, s_h_lmm, s_h_lm, s_h_l0, s_h_lp, s_f1_lp, s_f1_lm, s_f1_l0, s_df1_lp, s_df1_lm, s_df1_l0, s_f2_lp, s_f2_lm, s_f2_l0, s_df2_lp, s_df2_lm, s_df2_l0, idx, d_ws, dims);
 }
 
-template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_ITERATION, int LOAD_SIZE, boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM> __device__
+template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_ITERATION, int LOAD_SIZE, boundary_condtion_type::IDs  BC_Y0, boundary_condtion_type::IDs  BC_YM> __device__
 	void compute_Jy_and_F_row_last_subloop(
 		reduced_device_workspace<DATATYPE> d_ws, indices_Jy &idx, dimensions dims,
 		DATATYPE s_h_lmm[LOAD_SIZE], DATATYPE s_h_lm[LOAD_SIZE], DATATYPE s_h_l0[LOAD_SIZE], DATATYPE s_h_lp[LOAD_SIZE], DATATYPE s_h_lpp[LOAD_SIZE],
@@ -394,7 +399,7 @@ template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_
 		if (sub_loop_length > 14) compute_Jy_and_F_row_single<DATATYPE, BLOCK_SIZE, THREAD_SIZE, FIRST_NEWTON_ITERATION, LOAD_SIZE, BC_Y0, BC_YM>(s_h_lpp, s_h_lmm, s_h_lm, s_h_l0, s_h_lp, s_f1_lp, s_f1_lm, s_f1_l0, s_df1_lp, s_df1_lm, s_df1_l0, s_f2_lp, s_f2_lm, s_f2_l0, s_df2_lp, s_df2_lm, s_df2_l0, idx, d_ws, dims);
 }
 
-template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_ITERATION,boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM> __global__
+template <typename DATATYPE, int BLOCK_SIZE, int THREAD_SIZE, bool FIRST_NEWTON_ITERATION,boundary_condtion_type::IDs  BC_Y0, boundary_condtion_type::IDs  BC_YM> __global__
 void compute_Jy_and_F
 (reduced_device_workspace<DATATYPE> d_ws, dimensions dims)
 {
@@ -459,4 +464,5 @@ void compute_Jy_and_F
 	}
 }
 
+}
 #endif

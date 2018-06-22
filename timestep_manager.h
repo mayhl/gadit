@@ -33,7 +33,7 @@ namespace timestep_manager_status
 	};
 }
 
-template <typename DATATYPE> class timestep_manager
+template <typename DATATYPE,bool FIXED_DT> class timestep_manager
 {
 
 public:
@@ -47,6 +47,10 @@ public:
 		t						= parameters.t_start;
 		t_out					= t + parameters.dt_out;
 		t_next					= t + dt;
+
+		steps_per_out           = round(t_out / dt);
+		sub_out_steps           = 0;
+
 
 		isOutputStep			= false;
 		isSuccessfulOutputStep	= false;
@@ -79,33 +83,68 @@ public:
 	}
 
 
-	// returns false only if dt goes below dt_min.
-	timestep_manager_status::status update_dt(  newton_status::status &status )
+
+	void update_fixed_dt()
 	{
-		
-		isSuccessfulOutputStep = false;
-		if ( status == newton_status::SUCCESS  )
+
+
+		sub_out_steps++;
+
+
+		if (sub_out_steps == steps_per_out )
 		{
-	
-			time_steps++;
-			stable_time_steps++;
-
-			t = t_next;
-			increase_dt(status);
-
+			sub_out_steps = 0;
+			isOutputStep = true;
+			isSuccessfulOutputStep = true;
+			t_out = t_out + parameters.dt_out;
+			outputStep++;
 		}
 		else
 		{
-			stable_time_steps = 0;
-			is_at_max_time_step = false;
-			// Unexpected state, dt was lowered to match output time but failed.
-			if ( isOutputStep ) return timestep_manager_status::DT_CHANGE_OUTPUT;
+			isSuccessfulOutputStep = false;
+			isOutputStep = false;
+		}
 
-			dt /= parameters.dt_ratio_decrease;
-			if ( dt < parameters.dt_min ) return timestep_manager_status::MIN_DT;
+		t += dt;
+
+		isNotCompleted = (t <= parameters.t_end);
+
+	}
+
+	// returns false only if dt goes below dt_min.
+	timestep_manager_status::status update_dt(  newton_status::status &status )
+	{
+		if (FIXED_DT)
+		{
+			update_fixed_dt();
+			return timestep_manager_status::SUCCESS;
+		}
+		else
+		{
+			isSuccessfulOutputStep = false;
+			if (status == newton_status::SUCCESS)
+			{
+
+				time_steps++;
+				stable_time_steps++;
+
+				t = t_next;
+				increase_dt(status);
+
+			}
+			else
+			{
+				stable_time_steps = 0;
+				is_at_max_time_step = false;
+				// Unexpected state, dt was lowered to match output time but failed.
+				if (isOutputStep) return timestep_manager_status::DT_CHANGE_OUTPUT;
+
+				dt /= parameters.dt_ratio_decrease;
+				if (dt < parameters.dt_min) return timestep_manager_status::MIN_DT;
+			}
+			return timestep_manager_status::SUCCESS;
 		}
 		
-		return timestep_manager_status::SUCCESS;
 	}
 
 
@@ -139,6 +178,8 @@ public:
 	size_t outputStep;
 	size_t stable_time_steps;
 	size_t time_steps;
+	size_t sub_out_steps;
+	size_t steps_per_out;
 	
 	temporal_parameters<DATATYPE> parameters;
 	
@@ -148,13 +189,15 @@ public:
 		if ( !isOutputStep )
 		{
 				
+	
+			
 			// Increasing dt within dt_max
-			if( (stable_time_steps >= parameters.min_stable_step) )
+			if ((stable_time_steps >= parameters.min_stable_step))
 			{
-				dt*=parameters.dt_ratio_increase;
+				dt *= parameters.dt_ratio_increase;
 				status = newton_status::INCREASE_DT;
 
-				if ( dt > parameters.dt_max )
+				if (dt > parameters.dt_max)
 				{
 					dt = parameters.dt_max;
 					is_at_max_time_step = true;
@@ -166,7 +209,7 @@ public:
 			// Adjusting dt temporarily if close to t_out
 			t_next = t + dt;
 
-			if ( t_next >= t_out )
+			if (t_next >= t_out)
 			{
 				dt_temp = dt;
 
@@ -175,6 +218,9 @@ public:
 
 				isOutputStep = true;
 			}
+			
+
+
 
 		}
 		else

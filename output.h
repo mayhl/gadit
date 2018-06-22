@@ -55,6 +55,7 @@ namespace file_directories
 		//			points on the boundary i.e the matrix size in 
 		//			( n + 4 ) X (m  + 4)
 		std::string icInputFile			= inputDir	+ "/InitialCondition.bin";
+
 		
 		// data files for timestep, dt; and iter
 		std::string timestepData		= statusDir + "/Timesteps.bin";

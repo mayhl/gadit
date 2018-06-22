@@ -41,16 +41,19 @@
 
 #include "output.h"
 
-#include <chrono>
-#include <ctime>
 
 template <typename DATATYPE, model::id MODEL_ID , initial_condition::id IC_ID, 
-	boundary_condtion_type BC_X0, boundary_condtion_type BC_XN,
-	boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM> class gadit_solver
+	boundary_condtion_type::IDs  BC_X0, boundary_condtion_type::IDs  BC_XN,
+	boundary_condtion_type::IDs  BC_Y0, boundary_condtion_type::IDs  BC_YM> class gadit_solver
 {
 public:
 
+	const static bool FIXED_DT = false;
+
+
 	gadit_solver(){};
+
+
 
 	void initialize(parameters<DATATYPE,MODEL_ID,IC_ID> paras )
 	{
@@ -81,7 +84,7 @@ public:
 
 		dims.set_simple_block_dimension(simple_block_size);
 
-		u_ws.initalize_memory(dims);
+		u_ws.initalize_memory(dims , MODEL_ID);
 
 		ker_launch_paras.initalize(dims);
 
@@ -101,16 +104,20 @@ public:
 	{
 
 		string outputString;
-		timestep_manager<DATATYPE> t_mang;
+		timestep_manager<DATATYPE, FIXED_DT> t_mang;
 		backup_manager<DATATYPE> sol_b_mang;
 		status_logger<DATATYPE> log_file;
-		
+
+		backup_manager<DATATYPE> sol_quit_mang;
+
+
 		newton_status::status n_status;
 		timestep_manager_status::status t_status;
 
-		sol_b_mang.initialize( paras.backup.updateTime );
+		sol_b_mang.initialize(paras.backup.updateTime);
+		sol_quit_mang.initialize(4*60);
 
-		bool isFirstRun = !fileExists( file_directories::backupFileInfo );
+		bool isFirstRun = !fileExists( paras.io.root_directory +  file_directories::backupFileInfo );
 
 		// loading data if temporary data exists.
 		if ( isFirstRun )
@@ -124,12 +131,26 @@ public:
 
 			outputString =  get_time_stamp() + "Started simulations from initial condition.";
 			write_to_new_file(paras.io.root_directory + file_directories::statusData , outputString, paras.io.is_console_output);
+
+			char buff[100];
+			sprintf(buff, "/solution_%07d.bin", t_mang.get_next_output_index());
+
+			std::string outputFileDir;
+			outputFileDir = paras.io.root_directory + file_directories::outputDir + buff;
+			output_binary(outputFileDir, u_ws.h->data_host, dims.n_pad, dims.m_pad);
+
+
+			sprintf(buff, "Saving initial condition.");
+			outputString = get_time_stamp() + buff;
+			write_to_old_file(paras.io.root_directory + file_directories::statusData, outputString, paras.io.is_console_output);
+
+
 		}
 		else
 		{		
 
-			load_object<timestep_manager<DATATYPE>>( paras.io.root_directory + file_directories::backupFileInfo , t_mang );
-			load_binary ( file_directories::backupSolution , u_ws.h->data_host , dims.n_pad , dims.m_pad );
+			load_object<timestep_manager<DATATYPE,FIXED_DT>>( paras.io.root_directory + file_directories::backupFileInfo , t_mang );
+			load_binary (paras.io.root_directory + file_directories::backupSolution , u_ws.h->data_host , dims.n_pad , dims.m_pad );
 			
 			char buff[100];				
 			sprintf(buff,"Continuing simulations from backup data at t = %11.10E." , t_mang.get_current_time() );
@@ -138,6 +159,33 @@ public:
 		}
 
 		memory_manager::copyHostToDevice(u_ws.h);
+
+		// Additional Model Specific Routines
+
+		if (MODEL_ID == model::NLC_ANCHORING)
+		{
+			string anchoringFile = paras.io.root_directory + file_directories::inputDir + "/" + model_nlc_anchoring::anchoringFile;
+			load_binary(anchoringFile, u_ws.phi->data_host, dims.n_pad, dims.m_pad);
+
+			for (int i = 0; i < dims.n_pad; i++)
+			{
+				for (int j = 0; j < dims.m_pad; j++)
+				{
+					int k = j*dims.n_pad + i;
+					double phi = u_ws.phi->data_host[k];
+
+					phi = 0;
+
+					u_ws.mu1->data_host[k] = 0.5*cos(2 * phi);
+					u_ws.mu2->data_host[k] = 0.5*sin(2 * phi);
+				}
+			}
+
+			memory_manager::copyHostToDevice(u_ws.mu1);
+			memory_manager::copyHostToDevice(u_ws.mu2);
+
+		}
+
 
 		// loops till t_end reached or break statement
 		// is executed by a failure state.
@@ -150,9 +198,23 @@ public:
 			if (paras.io.is_full_text_output) 
 				output_all_timestep_changes<DATATYPE>(t_mang, n_status, paras.io.is_console_output);
 
-			t_status = t_mang.update_dt( n_status );
 
-			log_file.add_entry( t_mang.get_iteration_index() , t_mang.get_timestep() , n_status , newton_count );
+			if (FIXED_DT)
+			{
+				if (n_status != newton_status::SUCCESS)
+				{
+					char buff[100];
+					sprintf(buff, "Simulation failed! Newton iterative scheme failed in fixed time step mode." );
+					outputString = get_time_stamp() + buff;
+					write_to_old_file(paras.io.root_directory + file_directories::statusData, outputString, paras.io.is_console_output);
+					break;
+				}
+			}
+	
+			t_status = t_mang.update_dt(n_status);
+			log_file.add_entry(t_mang.get_iteration_index(), t_mang.get_timestep(), n_status, newton_count);
+			
+		
 
 			// Check adaptive time-stepping is working
 			if ( t_status != timestep_manager_status::SUCCESS )
@@ -196,22 +258,32 @@ public:
 			if ( sol_b_mang.is_backup_time() )
 			{
 				char buff[100];		
-				
-				sprintf(buff,"Backing up solution at t = %11.10E to file." , t_mang.get_current_time() );
+
+				//sprintf(buff, "Backing up solution at t = %11.10E to file.", t_mang.get_current_time());
+
+				sprintf(buff, "Backing up solution at t = %11.10E to file. Time Left: %2.1E mins", t_mang.get_current_time() , sol_quit_mang.get_time_left() );
 				outputString =  get_time_stamp() + buff;
 				write_to_old_file(  paras.io.root_directory + file_directories::statusData , outputString, paras.io.is_console_output);
 
 				memory_manager::copyDeviceToHost<DATATYPE>( u_ws.h );
 				output_binary(  paras.io.root_directory + file_directories::backupSolution , u_ws.h->data_host , dims.n_pad , dims.m_pad );
 
-				save_object<timestep_manager<DATATYPE>>( paras.io.root_directory + file_directories::backupFileInfo , t_mang );
+				save_object<timestep_manager<DATATYPE, FIXED_DT>>( paras.io.root_directory + file_directories::backupFileInfo , t_mang );
 
 				log_file.commit_data_to_files(paras.io.root_directory);
+
+				if (sol_quit_mang.is_backup_time())
+				{
+					sprintf(buff, "Max simulation run time reached. Stopping! ", t_mang.get_current_time());
+					outputString = get_time_stamp() + buff;
+					write_to_old_file(paras.io.root_directory + file_directories::statusData, outputString, paras.io.is_console_output);
+					break;
+				}
 			}
 
 		}
-
-		char buff[100];
+		////////////////////////////////////
+		char buff[100];                                                                                                  
 
 		sprintf(buff, "Backing up solution at t = %11.10E to file.", t_mang.get_current_time());
 		outputString = get_time_stamp() + buff;
@@ -220,10 +292,12 @@ public:
 		memory_manager::copyDeviceToHost<DATATYPE>(u_ws.h);
 		output_binary(paras.io.root_directory + file_directories::backupSolution, u_ws.h->data_host, dims.n_pad, dims.m_pad);
 
-		save_object<timestep_manager<DATATYPE>>(paras.io.root_directory + file_directories::backupFileInfo, t_mang);
+		save_object<timestep_manager<DATATYPE, FIXED_DT>>(paras.io.root_directory + file_directories::backupFileInfo, t_mang);
 
 		log_file.commit_data_to_files(paras.io.root_directory);
+		////////////////////////////////////////
 
+		clean_workspace();
 	};
 
 	void clean_workspace()
@@ -242,7 +316,7 @@ private:
 
 	};
 
-	template <typename DATATYPE> void output_all_timestep_changes(timestep_manager<DATATYPE> t_mang, newton_status::status n_status, bool  is_console_output)
+	template <typename DATATYPE,bool FIXED_DT> void output_all_timestep_changes(timestep_manager<DATATYPE,FIXED_DT> t_mang, newton_status::status n_status, bool  is_console_output)
 	{
 
 		string outputString;

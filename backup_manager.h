@@ -19,7 +19,6 @@
 // along with GADIT.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------------
 
-
 // ----------------------------------------------------------------------------------
 // Name:	backup_manager.h
 // Version: 1.0
@@ -28,7 +27,7 @@
 
 #ifndef BACKUP_MANAGER
 #define BACKUP_MANAGER
-#include <chrono>
+#include <ctime>
 #include "parameters.h"
 
 
@@ -40,14 +39,28 @@ public:
 	void initialize(long long backup_time )
 	{
 		this->backup_time = backup_time;
-		timeLastupdate =  std::chrono::system_clock::now();
+		timeLastupdate = clock();
+	}
+
+
+	double get_time_elasped()
+	{
+		currentTime = clock();
+		return (currentTime - timeLastupdate) / CLOCKS_PER_SEC/ 60;
+	}
+
+	double get_time_left()
+	{	
+		return backup_time - get_time_elasped();
 	}
 
 	bool is_backup_time()
 	{
-		currentTime  =  std::chrono::system_clock::now();
+		currentTime  = clock();
 
-		long long timeDiff =  std::chrono::duration_cast< std::chrono::minutes >(currentTime - timeLastupdate).count();
+		//long long timeDiff =  std::chrono::duration_cast< std::chrono::minutes >(currentTime - timeLastupdate).count();
+
+		double timeDiff = get_time_elasped();
 
 		if ( timeDiff > backup_time)
 		{
@@ -62,8 +75,8 @@ private:
 	
 	long long backup_time;
 
-	std::chrono::system_clock::time_point timeLastupdate;
-	std::chrono::system_clock::time_point currentTime;
+	clock_t timeLastupdate;
+	clock_t currentTime;
 	
 
 };

@@ -29,13 +29,14 @@
 #ifndef NEWTON
 #define NEWTON
 
-#include <chrono>
 #include "dimensions.h"
 #include "cuda_parameters.h"
 
 #include "nonlinear_penta_solver.h"
 #include "compute_Jy_F.h"
 #include "compute_Jx.h"
+#include "compute_Jy_F_anchoring.h"
+#include "compute_Jx_anchoring.h"
 
 #include "model_list.h"
 // List of Models 
@@ -60,7 +61,7 @@ namespace  newton_iterative_method
 		//	break;
 
 		//}
-
+		
 		model_list::select_functions<DATATYPE,MODEL_ID>( d_ws , d_h , modelParas , index );
 
 		// Note: Recall to multiple function by dt and scaled 1/dx^4 and 1/dx^2 
@@ -175,8 +176,8 @@ namespace  newton_iterative_method
 	
 
 	template <typename DATATYPE, model::id MODEL_ID,
-		boundary_condtion_type BC_X0, boundary_condtion_type BC_XN,
-		boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM,
+		boundary_condtion_type::IDs  BC_X0, boundary_condtion_type::IDs  BC_XN,
+		boundary_condtion_type::IDs  BC_Y0, boundary_condtion_type::IDs  BC_YM,
 		bool FIRST_NEWTON_ITERATION > __global__
 		void preprocessing(reduced_device_workspace<DATATYPE> d_ws, dimensions dims, spatial_parameters<DATATYPE> spatialParas, model_parameters<DATATYPE, MODEL_ID> modelParas, DATATYPE dt, newton_parameters<DATATYPE> newt_paras)
 	{
@@ -218,8 +219,8 @@ namespace  newton_iterative_method
 
 
 	template<typename DATATYPE, model::id MODEL_ID, initial_condition::id IC_ID,
-		boundary_condtion_type BC_X0, boundary_condtion_type BC_XN,
-		boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM, newton_stage::stage NEWTON_STAGE > void
+		boundary_condtion_type::IDs  BC_X0, boundary_condtion_type::IDs  BC_XN,
+		boundary_condtion_type::IDs  BC_Y0, boundary_condtion_type::IDs  BC_YM, newton_stage::stage NEWTON_STAGE > void
 		apply_single_iteration
 		(DATATYPE &dt, unified_work_space<DATATYPE> u_ws, dimensions dims, parameters<DATATYPE,MODEL_ID,IC_ID> paras, cuda_parameters::kernal_launch_parameters ker_launch_paras , newton_status::status &n_status){
 
@@ -236,7 +237,15 @@ namespace  newton_iterative_method
 			block_size = ker_launch_paras.compute_Jy.block;
 			thread_size = ker_launch_paras.compute_Jy.thread;
 
-			compute_Jy_and_F<DATATYPE, cuda_parameters::SOLVE_JY_SUBLOOP_SIZE, cuda_parameters::SOLVE_JY_THREAD_SIZE, FIRST_NEWTON_ITERATION, BC_Y0, BC_YM> << <block_size, thread_size >> >(u_ws.reduced_dev_ws, dims);
+			switch (MODEL_ID)
+			{
+			case model::NLC_ANCHORING:
+				compute_Jy_F_anchoring::compute_Jy_and_F<DATATYPE, cuda_parameters::SOLVE_JY_SUBLOOP_SIZE, cuda_parameters::SOLVE_JY_THREAD_SIZE, FIRST_NEWTON_ITERATION, BC_Y0, BC_YM> << <block_size, thread_size >> >(u_ws.reduced_dev_ws, dims);
+				break;
+			default:
+				compute_Jy_F::compute_Jy_and_F<DATATYPE, cuda_parameters::SOLVE_JY_SUBLOOP_SIZE, cuda_parameters::SOLVE_JY_THREAD_SIZE, FIRST_NEWTON_ITERATION, BC_Y0, BC_YM> << <block_size, thread_size >> >(u_ws.reduced_dev_ws, dims);
+			}
+			
 			cudaDeviceSynchronize();
 			thread_size = ker_launch_paras.penta_y_direction.thread;
 			block_size = ker_launch_paras.penta_y_direction.block;
@@ -250,7 +259,16 @@ namespace  newton_iterative_method
 
 			// Apply ADI method in x direction
 
-			compute_Jx<DATATYPE, cuda_parameters::SIMPLE_SQUARE_BLOCK, FIRST_NEWTON_ITERATION,BC_X0,BC_XN> << <block_size, thread_size >> >(u_ws.reduced_dev_ws, dims);
+			switch (MODEL_ID)
+			{
+			case model::NLC_ANCHORING:
+				compute_Jx_anchoring::compute_Jx<DATATYPE, cuda_parameters::SIMPLE_SQUARE_BLOCK, FIRST_NEWTON_ITERATION, BC_X0, BC_XN> << <block_size, thread_size >> >(u_ws.reduced_dev_ws, dims);
+				break;
+			default:
+				compute_Jx::compute_Jx<DATATYPE, cuda_parameters::SIMPLE_SQUARE_BLOCK, FIRST_NEWTON_ITERATION, BC_X0, BC_XN> << <block_size, thread_size >> >(u_ws.reduced_dev_ws, dims);
+			}
+			
+			
 			cudaDeviceSynchronize();
 			thread_size = ker_launch_paras.penta_x_direction.thread;
 			block_size = ker_launch_paras.penta_x_direction.block;
@@ -278,8 +296,8 @@ namespace  newton_iterative_method
 		}
 	
 	template<typename DATATYPE, model::id MODEL_ID, initial_condition::id IC_ID, 
-		boundary_condtion_type BC_X0, boundary_condtion_type BC_XN,
-		boundary_condtion_type BC_Y0, boundary_condtion_type BC_YM> void
+		boundary_condtion_type::IDs  BC_X0, boundary_condtion_type::IDs  BC_XN,
+		boundary_condtion_type::IDs  BC_Y0, boundary_condtion_type::IDs  BC_YM> void
 			solve_time_step
 			(unified_work_space<DATATYPE> u_ws, dimensions dims,
 			 parameters<DATATYPE,MODEL_ID,IC_ID> paras, cuda_parameters::kernal_launch_parameters ker_launch_paras , DATATYPE dt , size_t &newton_count , newton_status::status &n_status )

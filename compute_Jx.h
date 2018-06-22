@@ -36,7 +36,10 @@
 
 #include "cuda_runtime.h"
 
-int const PADDING_SIZE=2;
+
+namespace compute_Jx
+{
+	int const PADDING_SIZE = 2;
 
 template <typename DATATYPE, int BLOCK_SIZE, bool FIRST_NEWTON_ITERATION> __device__
 		void load_Jx_block
@@ -98,7 +101,7 @@ template <typename DATATYPE, int BLOCK_SIZE, bool FIRST_NEWTON_ITERATION> __devi
 		}
 }
 template <typename DATATYPE, int BLOCK_SIZE, bool FIRST_NEWTON_ITERATION,
-	boundary_condtion_type BC_X0, boundary_condtion_type BC_XN> __global__
+	boundary_condtion_type::IDs  BC_X0, boundary_condtion_type::IDs  BC_XN> __global__
 		void compute_Jx(reduced_device_workspace<DATATYPE> d_ws, dimensions dims )
 	{
 
@@ -126,6 +129,21 @@ template <typename DATATYPE, int BLOCK_SIZE, bool FIRST_NEWTON_ITERATION,
 				penta_diag_row<DATATYPE> Jx;
 				bool custom_Jx_row;
 
+
+	/*			DATATYPE  HXXX_KP_K0;		
+				DATATYPE  HXXX_KP_KP;
+				DATATYPE  HXXX_K0_K0;		
+				DATATYPE  HXXX_K0_KP;
+				DATATYPE  HXXX_KM_K0;		
+				DATATYPE  HXXX_KM_KP;
+				DATATYPE  HXXX_KMM_K0;      
+				DATATYPE  HXXX_KMM_KP;
+
+				DATATYPE  HX_K0_K0;			
+				DATATYPE  HX_K0_KP;
+				DATATYPE  HX_KM_K0;			
+				DATATYPE  HX_KM_KP;*/
+
 				DATATYPE  HXXX_KP_K0;		DATATYPE  HXXX_KP_KP;
 				DATATYPE  HXXX_K0_K0;		DATATYPE  HXXX_K0_KP;
 				DATATYPE  HXXX_KM_K0;		DATATYPE  HXXX_KM_KP;
@@ -134,14 +152,14 @@ template <typename DATATYPE, int BLOCK_SIZE, bool FIRST_NEWTON_ITERATION,
 				DATATYPE  HX_K0_K0;			DATATYPE  HX_K0_KP;
 				DATATYPE  HX_KM_K0;			DATATYPE  HX_KM_KP;
 
-				if (2 < x && x < dims.n - 3) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::INTERIOR, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
+				if (2 < x && x < dims.n - 3) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::INTERIOR, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
 
-				if (x == 0) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::FIRST, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
-				if (x == 1) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::SECOND, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
-				if (x == 2) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::THIRD, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
-				if (x == dims.n - 1) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::FIRST_LAST, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
-				if (x == dims.n - 2) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::SECOND_LAST, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
-				if (x == dims.n - 3) boundary_condition::lhs_matrix_J<DATATYPE, bc_postition::THIRD_LAST, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
+				if (x == 0) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::FIRST, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
+				if (x == 1) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::SECOND, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
+				if (x == 2) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::THIRD, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
+				if (x == dims.n - 1) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::FIRST_LAST, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
+				if (x == dims.n - 2) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::SECOND_LAST, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
+				if (x == dims.n - 3) boundary_condition::lhs_matrix_J<DATATYPE, boundary_condtion_postition::THIRD_LAST, BC_X0, BC_XN>(HXXX_KP_K0, HXXX_KP_KP, HXXX_K0_K0, HXXX_K0_KP, HXXX_KM_K0, HXXX_KM_KP, HXXX_KMM_K0, HXXX_KMM_KP, HX_K0_K0, HX_K0_KP, HX_KM_K0, HX_KM_KP, Jx, custom_Jx_row);
 
 
 				// Computing Jx matrix
@@ -183,8 +201,8 @@ template <typename DATATYPE, int BLOCK_SIZE, bool FIRST_NEWTON_ITERATION,
 					d_ws.w_transpose[globalIdx_transpose] = Jx.f;
 			
 			
-				// transfering tranposed shared data to global
-				// for memory coalecence is for next ADI direction
+				// transferring transposed shared data to global
+				// for memory coalescence is for next ADI direction
 				d_ws.Jx_a[globalIdx_transpose] = Jx.a;
 				d_ws.Jx_b[globalIdx_transpose] = Jx.b;
 				d_ws.Jx_c[globalIdx_transpose] = 1.0 + Jx.c;
@@ -199,5 +217,5 @@ template <typename DATATYPE, int BLOCK_SIZE, bool FIRST_NEWTON_ITERATION,
 		}
 
 
-
+ }
 #endif

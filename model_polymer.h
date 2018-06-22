@@ -77,7 +77,7 @@ namespace model_polymer
 			DATATYPE inv_hd = 1.0 / (h + d);
 
 			DATATYPE term1 = -72 * ci*pow(inv_h, 10);
-			DATATYPE term2 = -6 * ASIO*pow(inv_h, 4);
+			DATATYPE term2 =  6 * ASIO*pow(inv_h, 4);
 			DATATYPE term3 = -6 * (ASIO - ASI)*pow(inv_hd, 4);
 
 			DATATYPE term4 = term1 + term2 + term3;
@@ -107,7 +107,7 @@ namespace model_polymer
 			DATATYPE inv_hd = 1.0 / (h + d);
 
 			DATATYPE term1 = -72 * ci*pow(inv_h, 10);
-			DATATYPE term2 = -6 * ASIO*pow(inv_h, 4);
+			DATATYPE term2 =  6 * ASIO*pow(inv_h, 4);
 			DATATYPE term3 = -6 * (ASIO - ASI)*pow(inv_hd, 4);
 
 			DATATYPE term4 = term1 + term2 + term3;
@@ -160,15 +160,15 @@ namespace model_polymer
 
 		DATATYPE inv_hd = 1.0 / (h+d);
 		
-		DATATYPE term1 = -72*ci*pow(inv_h,10);
-		DATATYPE term2 = - 6*ASIO*pow(inv_h,4 ) ;
-		DATATYPE term3 =   -6*(ASIO-ASI)*pow(inv_hd,4);
+		DATATYPE term1 = -72.0*ci*pow(inv_h,10);
+		DATATYPE term2 =  6.0*ASIO*pow(inv_h,4 ) ;
+		DATATYPE term3 =   -6.0*(ASIO-ASI)*pow(inv_hd,4);
 
 		DATATYPE term4 = term1 + term2 + term3;
 
 
 		d_ws.f2[h_index] = h3*term4;
-		d_ws.df2[h_index] = 3.0*h2*term4 + h3*( term1*10*inv_h + term2*4*inv_h + term3*4*inv_hd );
+		d_ws.df2[h_index] = 3.0*h2*term4 + h3*( term1*10.0*inv_h + term2*4.0*inv_h + term3*4.0*inv_hd );
 
 	}
 

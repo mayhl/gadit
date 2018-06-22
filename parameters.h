@@ -24,7 +24,27 @@
 #define PARAMETERS
 
 
-#include <chrono>
+//#include <chrono>
+namespace model
+{
+	enum id {
+		DEFAULT,
+		NLC,
+		POLYMER,
+		CONSANT,
+		NLC_INCLINE,
+		NLC_ANCHORING,
+		COLLOID_POLYMER
+	};
+}
+namespace initial_condition {
+
+	enum id {
+		LOAD_FROM_FILE,
+		LINEAR_WAVES,
+	};
+
+}
 
 namespace newton_status{
 	enum status
@@ -48,15 +68,55 @@ namespace newton_stage
 	};
 }
 
-enum bc_postition
+namespace boundary_condtion_type
 {
-	FIRST, SECOND, THIRD, FIRST_LAST, SECOND_LAST, THIRD_LAST, INTERIOR,
+	// Notation: TYPE_IJ
+	// Combination of 2 boundary conditions (BCs) I,J = 0,1,2,3
+	// where I < J and I, J is the order of derivative with respect to the boundary
+	// e.g. I = 0 , J = 1 on the x boundary corresponds to BCs on h and h_x,
+	//      where h is the solution
+	// Note: BCs are homogeneous with  
+
+	enum IDs
+	{
+
+		TYPE_01,
+		TYPE_02,
+		TYPE_03,
+
+		TYPE_12,
+		TYPE_13,
+
+		TYPE_23,
+		SYMMETRIC = TYPE_13,
+		CONSTANT_FLOW = TYPE_01
+	};
+}
+
+namespace boundary_condtion_value_type
+{
+	enum IDs
+	{
+		// Note: for boundary condition Type 0, the 'HOMOGENEOUS' BC value 
+		//       type ID does not impose homogeneous BC e.g., h(x,t)=0 and h(y,t)=0;
+		//       but imposes the initial condition values e.g., h(x,t)=h(x,t=0) or h(x,t)=a(y,t=0).
+		//       Therefore for a homogeneous Type 0 BC, specify  'CONSANT' value type ID with
+		//    
+
+		HOMOGENEOUS,
+		CONSTANT,
+		SPATIAL_FUNCTION,
+		TEMPORAL_FUNCTION,
+		SPATIAL_AND_TEMPORAL_FUNCTION
+	};
 };
 
-
-enum boundary_condtion_type{
-	SYMMETRIC,
-	CONSTANT_FLOW,
+namespace boundary_condtion_postition
+{
+	enum IDs
+	{
+		FIRST, SECOND, THIRD, FIRST_LAST, SECOND_LAST, THIRD_LAST, INTERIOR
+	};
 };
 
 namespace format_parameter_output
@@ -97,6 +157,7 @@ namespace format_parameter_output
 		output = buff;
 		return output;
 	}
+
 	 std::string  datatype(double val)
 	{
 
@@ -110,7 +171,13 @@ namespace format_parameter_output
 			sprintf(buff, "%e", val);
 		else
 			sprintf(buff, "%f", val);
-		
+
+
+		if (val == 0)
+			sprintf(buff, "%i", 0.0);
+		else
+			sprintf(buff, "%14.12e", val);
+
 		output = buff;
 		return output;
 	}
@@ -128,6 +195,12 @@ namespace format_parameter_output
 			sprintf(buff, "%e", val);
 		else
 			sprintf(buff, "%f", val);
+
+		if (val == 0)
+			sprintf(buff, "%i", 0.0);
+		else
+			sprintf(buff, "%14.12e", val);
+
 
 		output = buff;
 		return output;
@@ -190,8 +263,6 @@ template <typename DATATYPE> struct spatial_parameters{
 	}
 
 };
-
-
 
 template <typename DATATYPE> struct newton_parameters{
 	DATATYPE error_tolerence;

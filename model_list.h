@@ -27,8 +27,11 @@
 // List of Models 
 #include "model_default.h"
 #include "model_nlc.h"
+#include "model_nlc_anchoring.h"
+#include "model_nlc_incline.h"
 #include "model_polymer.h"
 #include "model_constant.h"
+#include "model_colloidpolymer.h"
 
 namespace model_list
 {
@@ -43,11 +46,20 @@ namespace model_list
 		case model::NLC:
 			model_nlc::nonlinear_functions<DATATYPE>(d_ws, d_h, modelParas, index);
 			break;
+		case model::NLC_ANCHORING:
+			model_nlc_anchoring::nonlinear_functions<DATATYPE>(d_ws, d_h, modelParas, index);
+			break;
+		case model::NLC_INCLINE:
+			model_nlc_incline::nonlinear_functions<DATATYPE>(d_ws, d_h, modelParas, index);
+			break;
 		case model::POLYMER:
 			model_polymer::nonlinear_functions<DATATYPE>(d_ws, d_h, modelParas, index);
 			break;
 		case model::CONSANT:
 			model_constant::nonlinear_functions<DATATYPE>(d_ws, d_h, modelParas, index);
+			break;
+		case model::COLLOID_POLYMER:
+			model_colloid_polymer::nonlinear_functions<DATATYPE>(d_ws, d_h, modelParas, index);
 			break;
 		}
 	}

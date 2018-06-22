@@ -23,23 +23,7 @@
 #define SOLVER_TEMPLATE
 #include "parameters.h"
 
-namespace model
-{
-	enum id{
-		DEFAULT,
-		NLC,
-		POLYMER,
-		CONSANT,
-	};
-}
-namespace initial_condition{
 
-	enum id{
-		LOAD_FROM_FILE,
-		LINEAR_WAVES,
-	};
-
-}
 // dummy definitions
 template <typename DATATYPE, model::id MODEL_ID> struct model_parameters
 {

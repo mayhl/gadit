@@ -45,7 +45,7 @@ namespace model_constant
 		std::string to_string()
 		{
 			std::string output;
-			output = format_parameter_output::make_title("NLC Model");
+			output = format_parameter_output::make_title("Linear Model");
 
 			output += "c1   = " + format_parameter_output::datatype(this->c1) + "\n";
 			output += "c2   = " + format_parameter_output::datatype(this->c2) + "\n";
